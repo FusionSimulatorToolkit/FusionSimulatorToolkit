@@ -1,0 +1,3 @@
+example command:
+
+    FusionTranscriptSimulator ../RESOURCES/gencode.v19.annotation.gff3 /seq/regev_genome_portal/RESOURCES/CTAT_GENOME_LIB/build_dir/ref_genome.fa 100 
