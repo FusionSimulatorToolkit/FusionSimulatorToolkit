@@ -1,2 +1,4 @@
-# FusionSimulatorTookit
-code for simulating fusion transcripts
+# FusionSimulatorToolkit
+
+Click the wiki link to the right for documentation.
+
