@@ -57,6 +57,7 @@ main : {
     open (my $fh, $fusion_preds_file) or die "Error, cannot open file $fusion_preds_file";
     while (<$fh>) {
         chomp;
+        if (/^\#/) { next; }
         my @x = split(/\t/);
 
         my $fusion_name = $x[0];
@@ -114,7 +115,7 @@ sub parse_TP_fusions {
     while (<$fh>) {
         chomp;
         my $fusion = $_;
-        if ($fusion =~ /^(\w+)--(\w+)$/) {
+        if ($fusion =~ /^(\S+)--(\S+)$/) {
             $TP_fusions{$fusion} = 1;
         }
         else {
