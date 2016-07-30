@@ -14,7 +14,7 @@ main: {
 
     my %data = &parse_file($tp_fp_fn_file);    
     
-    print join("\t", "#prog", "min_sum_frags", "TP", "FP", "Sn", "FDR", "FPR", "F1") . "\n";
+    print join("\t", "#prog", "min_sum_frags", "TP", "FP", "TPR", "PPV", "F1") . "\n";
     
     
     my @TP_fusions = ($data{TP}) ? @{$data{TP}} : ();

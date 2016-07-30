@@ -1,0 +1,92 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+if (length(args) == 0) {
+	stop("require param: fusion.progname.pred.TP_FP_FN.ROC")
+}
+
+
+dat_filename = args[1]
+pdf_filename = paste(dat_filename, '.ROC_plot.pdf', sep='')
+pdf(pdf_filename)
+
+main = function() {
+
+	data = read.table(dat_filename)
+	colnames(data) = c('prog', 'min_sum_frags', 'TP', 'FP', 'TPR', 'PPV', 'F1');
+	data = cbind(data, FDR=1-data$PPV)
+	
+	max_TP = max(data$TP)
+    max_FP = max(data$FP)
+	
+	# split by progname
+	p = split(data, data$prog);
+	prognames = names(p)
+	prog_colors = rainbow(length(prognames))
+
+	#################
+	## Plot TP vs. FP
+
+	
+	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP")
+	
+	for (i in 1:length(prognames)) {
+        prog_data = p[[ prognames[i] ]]
+
+        if (nrow(prog_data) > 0) {
+           points(prog_data$FP, prog_data$TP, col=prog_colors[i], pch=i)
+           #text(prog_data$FP, prog_data$TP, labels=prognames[i], cex=0.6, pos=4)
+        }
+    }
+	
+	legend('bottomright', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
+
+
+
+	###################
+	## Plot TPR ~ FDR
+	
+	max_TPR = max(data$TPR)
+	max_FDR = max(data$FDR)
+
+	plot(0,0, xlim=c(0,max_FDR), ylim=c(0,max_TPR), xlab="FDR", ylab="TPR", main="TPR vs. FDR")
+	
+	for (i in 1:length(prognames)) {
+        prog_data = p[[ prognames[i] ]]
+
+        if (nrow(prog_data) > 0) {
+           points(prog_data$FDR, prog_data$TPR, col=prog_colors[i], pch=i)
+        }
+    }
+	
+	legend('bottomright', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
+	
+
+
+	#########################
+	## Plot F1 ~ min_frag_sum
+
+	max_min_frag_sum = 20
+	max_F1 = max(data$F1)
+	
+	plot(0,0, xlim=c(0,max_min_frag_sum), ylim=c(0,max_F1), xlab="min_sum_frags", ylab="F1", main="F1 vs. min_sum_frags")
+	
+	for (i in 1:length(prognames)) {
+        prog_data = p[[ prognames[i] ]]
+
+        if (nrow(prog_data) > 0) {
+           points(prog_data$min_sum_frags, prog_data$F1, col=prog_colors[i], pch=i)
+        }
+    }
+	
+	legend('topright', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
+
+	quit(save = "no", status = 0, runLast = FALSE)
+
+}
+
+main()
+
+
+
