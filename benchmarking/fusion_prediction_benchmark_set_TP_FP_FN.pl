@@ -11,6 +11,8 @@ my $usage = <<__EOUSAGE__;
 
 ######################################################################
 #
+# Required:
+#
 #  --progname <string>        name of fusion predictor
 #
 #  --sample <string>          name of sample being processed
@@ -21,6 +23,10 @@ my $usage = <<__EOUSAGE__;
 #
 #  --fusion_preds <string>    fusion predictions ranked accordingly.
 #
+#
+# Optional:
+#
+#  --allow_reverse_fusion     if true fusion is A--B, allow for it to be reported as B--A
 #
 ######################################################################
 
@@ -39,6 +45,8 @@ my $gene_spans_file;
 my $fusion_preds_file;
 my $truth_fusions_file;
 
+my $ALLOW_REVERSE_FUSION = 0;
+
 &GetOptions ( 'h' => \$help_flag,
               
               'progname=s' => \$progname,
@@ -47,13 +55,20 @@ my $truth_fusions_file;
               'gene_spans=s' => \$gene_spans_file,
               'fusion_preds=s' => \$fusion_preds_file,
               'truth_fusions=s' => \$truth_fusions_file,
+              
+              'allow_reverse_fusion' => \$ALLOW_REVERSE_FUSION,
+              
     );
 
+
+if ($help_flag) { die $usage; }
 
 unless ($progname && $sample
         && 
         $gene_spans_file && $fusion_preds_file && $truth_fusions_file) {
+
     die $usage;
+
 }
 
 
@@ -75,29 +90,61 @@ main : {
         chomp;
         if (/^\#/) { next; }
         my @x = split(/\t/);
-
+        
         my $fusion_name = $x[0];
+        my ($geneA, $geneB) = split(/--/, $fusion_name);
+        
+        
+        my $reverse_fusion_name = "$geneB--$geneA";
         
         my ($accuracy_token, $accuracy_explanation);
 
+        ############################
+        ## Check for already seen TP
+        
         if ($seen_TP{$fusion_name}) {
             $accuracy_token = "NA-TP";
             $accuracy_explanation = "already scored $fusion_name as TP";
         }
+        
+        elsif ($ALLOW_REVERSE_FUSION && $seen_TP{$reverse_fusion_name}) {
+            $accuracy_token = "NA-TP_rev";
+            $accuracy_explanation = "already scored $fusion_name (rev) as TP";
+        }
+
+        ############################
+        ## Check for already seen FP
+        
         elsif ($FP_fusions{$fusion_name}) {
             $accuracy_token = "NA-FP";
             $accuracy_explanation = "already scored $fusion_name as FP";
         }
+
+        elsif ($ALLOW_REVERSE_FUSION && $FP_fusions{$reverse_fusion_name}) {
+            $accuracy_token = "NA-FP_rev";
+            $accuracy_explanation = "already scored $fusion_name (rev) as FP";
+        }
+        
+        ###############################
+        ## Check for new TP recognition
+        
         elsif ($TP_fusions{$fusion_name}) {
             $accuracy_token = "TP";
             $seen_TP{$fusion_name} = 1;
             $accuracy_explanation = "first encounter of TP $fusion_name";
         }
+        
+        elsif ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_fusion_name}) {
+            $accuracy_token = "TP";
+            $seen_TP{$fusion_name} = 1;
+            $accuracy_explanation = "first encounter of TP $fusion_name (rev)";
+        }
+        
         else {
             # haven't seen it yet and not a known TP
             # map to overlapping genes on the genome and consider equivalent.
             
-            my ($geneA, $geneB) = split(/--/, $fusion_name);
+            
             
             my @overlapping_genesA = &find_overlapping_genes($geneA, \%interval_trees, \%gene_id_to_coords);
             
@@ -115,14 +162,37 @@ main : {
                     foreach my $gB (@overlapping_genesB) {
                         
                         my $candidate_fusion = join("--", $gA, $gB);
+                        my $reverse_candidate_fusion = join("--", $gB, $gA);
+                        
+                        ###########################
+                        # check for already seen TP
                         if ($seen_TP{$candidate_fusion}) {
                             $existing_TPs{$candidate_fusion} = 1;
                         }
-                        elsif ($TP_fusions{$candidate_fusion}) {
+
+                        elsif ($ALLOW_REVERSE_FUSION && $seen_TP{$reverse_candidate_fusion}) {
+                            $existing_TPs{$reverse_candidate_fusion} = 1;
+                        }
+                        
+                        ####################
+                        ## Check for new TPs
+                        elsif ($TP_fusions{$candidate_fusion}) { 
                             $newly_found_TPs{$candidate_fusion} = 1;
                         }
+
+                        elsif ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_candidate_fusion}) {
+                            $newly_found_TPs{$reverse_candidate_fusion} = 1;
+                        }
+                        
+                        #############################
+                        ## Check for already seen FPs
+                        
                         elsif ($FP_fusions{$candidate_fusion}) {
                             $existing_FPs{$candidate_fusion} = 1;
+                        }
+                        
+                        elsif ($ALLOW_REVERSE_FUSION && $FP_fusions{$reverse_candidate_fusion}) {
+                            $existing_FPs{$reverse_candidate_fusion} = 1;
                         }
                     }
                 }

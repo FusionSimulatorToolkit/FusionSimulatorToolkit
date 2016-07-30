@@ -24,9 +24,28 @@ main = function() {
 	p = split(data, data$prog);
 	prognames = names(p)
 	prog_colors = rainbow(length(prognames))
+	
+	#############################
+	## Plot TP vs. FP as ROC-like
+	
+	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP")
+	
+	for (i in 1:length(prognames)) {
+        prog_data = p[[ prognames[i] ]]
 
-	#################
-	## Plot TP vs. FP
+        if (nrow(prog_data) > 0) {
+           points(prog_data$FP[1], prog_data$TP[1], col=prog_colors[i], pch=i)
+           text(prog_data$FP[1], prog_data$TP[1], labels=prognames[i], cex=0.6, pos=4)
+        }
+    }
+	
+	legend('bottomright', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
+
+
+
+
+	#############################
+	## Plot TP vs. FP as ROC-like
 
 	
 	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP")
