@@ -67,16 +67,16 @@ main : {
 
         if ($seen_TP{$fusion_name}) {
             $accuracy_token = "NA-TP";
-            $accuracy_explanation = join("_", qq(already scored $fusion_name as TP));
+            $accuracy_explanation = "already scored $fusion_name as TP";
         }
         elsif ($FP_fusions{$fusion_name}) {
             $accuracy_token = "NA-FP";
-            $accuracy_explanation = join("_", qq(already scored $fusion_name as FP));
+            $accuracy_explanation = "already scored $fusion_name as FP";
         }
         elsif ($TP_fusions{$fusion_name}) {
             $accuracy_token = "TP";
             $seen_TP{$fusion_name} = 1;
-            $accuracy_explanation = join("_", qq(first encounter of TP $fusion_name));
+            $accuracy_explanation = "first encounter of TP $fusion_name";
         }
         else {
             # haven't seen it yet and not a known TP
@@ -134,9 +134,19 @@ main : {
             $FP_fusions{$fusion_name} = 1;
         }
 
+        $accuracy_explanation =~ s/\s/_/g;
+        
         print join("\t", $accuracy_token, @x, $accuracy_explanation) . "\n";
     }
-        
+
+
+    ## Report false-negatives (known fusions not predicted)
+    
+    foreach my $fusion_name (keys %TP_fusions) {
+        if (! $seen_TP{$fusion_name}) {
+            print join("\t", "FN", $fusion_name, 0, 0, "lacking_this_fusion_prediction") . "\n";
+        }
+    }
     
     exit(0);
     
