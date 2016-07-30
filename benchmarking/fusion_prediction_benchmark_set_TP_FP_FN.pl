@@ -55,6 +55,9 @@ main : {
     my %FP_fusions;
     my %seen_TP;
 
+    # print header
+    print join("\t", "#pred_result", "FusionName", "J", "S", "explanation") . "\n";
+
     open (my $fh, $fusion_preds_file) or die "Error, cannot open file $fusion_preds_file";
     while (<$fh>) {
         chomp;
