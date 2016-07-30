@@ -11,6 +11,10 @@ my $usage = <<__EOUSAGE__;
 
 ######################################################################
 #
+#  --progname <string>        name of fusion predictor
+#
+#  --sample <string>          name of sample being processed
+#
 #  --gene_spans <string>      reference annotation gene spans file
 #
 #  --truth_fusions <string>   file containing a list of the true fusions.
@@ -27,6 +31,8 @@ __EOUSAGE__
     ;
 
 
+my $progname = "";
+my $sample = "";
 
 my $help_flag;
 my $gene_spans_file;
@@ -34,13 +40,19 @@ my $fusion_preds_file;
 my $truth_fusions_file;
 
 &GetOptions ( 'h' => \$help_flag,
+              
+              'progname=s' => \$progname,
+              'sample=s' => \$sample,
+              
               'gene_spans=s' => \$gene_spans_file,
               'fusion_preds=s' => \$fusion_preds_file,
               'truth_fusions=s' => \$truth_fusions_file,
     );
 
 
-unless ($gene_spans_file && $fusion_preds_file && $truth_fusions_file) {
+unless ($progname && $sample
+        && 
+        $gene_spans_file && $fusion_preds_file && $truth_fusions_file) {
     die $usage;
 }
 
@@ -56,7 +68,7 @@ main : {
     my %seen_TP;
 
     # print header
-    print join("\t", "#pred_result", "FusionName", "J", "S", "explanation") . "\n";
+    print join("\t", "#pred_result", "ProgName", "Sample", "FusionName", "J", "S", "explanation") . "\n";
 
     open (my $fh, $fusion_preds_file) or die "Error, cannot open file $fusion_preds_file";
     while (<$fh>) {
@@ -91,63 +103,80 @@ main : {
             
             my @overlapping_genesB = &find_overlapping_genes($geneB, \%interval_trees, \%gene_id_to_coords);
             
-            ## explore combinations between A and B pairs
-            my %newly_found_TPs;
-            my %existing_TPs;
-            my %existing_FPs;
-            
-            
-            foreach my $gA (@overlapping_genesA) {
-                foreach my $gB (@overlapping_genesB) {
-
-                    my $candidate_fusion = join("--", $gA, $gB);
-                    if ($seen_TP{$candidate_fusion}) {
-                        $existing_TPs{$candidate_fusion} = 1;
-                    }
-                    elsif ($TP_fusions{$candidate_fusion}) {
-                        $newly_found_TPs{$candidate_fusion} = 1;
-                    }
-                    elsif ($FP_fusions{$candidate_fusion}) {
-                        $existing_FPs{$candidate_fusion} = 1;
+            if (@overlapping_genesA && @overlapping_genesB) {
+                ## explore combinations between A and B pairs
+                
+                my %newly_found_TPs;
+                my %existing_TPs;
+                my %existing_FPs;
+                
+                
+                foreach my $gA (@overlapping_genesA) {
+                    foreach my $gB (@overlapping_genesB) {
+                        
+                        my $candidate_fusion = join("--", $gA, $gB);
+                        if ($seen_TP{$candidate_fusion}) {
+                            $existing_TPs{$candidate_fusion} = 1;
+                        }
+                        elsif ($TP_fusions{$candidate_fusion}) {
+                            $newly_found_TPs{$candidate_fusion} = 1;
+                        }
+                        elsif ($FP_fusions{$candidate_fusion}) {
+                            $existing_FPs{$candidate_fusion} = 1;
+                        }
                     }
                 }
-            }
-
-            if (my @new_TPs = keys %newly_found_TPs) {
-                $accuracy_token = "TP";
-                foreach my $f (@new_TPs) {
-                    $seen_TP{$f} = 1;
+                
+                if (my @new_TPs = keys %newly_found_TPs) {
+                    $accuracy_token = "TP";
+                    foreach my $f (@new_TPs) {
+                        $seen_TP{$f} = 1;
+                    }
+                    $accuracy_explanation = "chr mapping to first encounter of TP " . join(",", @new_TPs);
                 }
-                $accuracy_explanation = "chr mapping to first encounter of TP " . join(", ", @new_TPs);
+                elsif (my @existing_TPs = keys %existing_TPs) {
+                    $accuracy_token = "NA-TP";
+                    $accuracy_explanation = "chr mapping to already scored TP " . join(",", @existing_TPs);
+                }
+                elsif (my @existing_FPs = keys %existing_FPs) {
+                    $accuracy_token = "NA-FP";
+                    $accuracy_explanation = "chr mapping to already scored FP " . join(",", @existing_FPs);
+                }
             }
-            elsif (my @existing_TPs = keys %existing_TPs) {
-                $accuracy_token = "NA-TP";
-                $accuracy_explanation = "chr mapping to already scored TP " . join(",", @existing_TPs);
-            }
-            elsif (my @existing_FPs = keys %existing_FPs) {
-                $accuracy_token = "NA-FP";
-                $accuracy_explanation = "chr mapping to already scored FP " . join(",", @existing_FPs);
+            
+            else {
+                ## no overlapping genes found
+                my @missing_genes;
+                unless (@overlapping_genesA) {
+                    push (@missing_genes, $geneA);
+                }
+                unless (@overlapping_genesB) {
+                    push (@missing_genes, $geneB);
+                }
+                $accuracy_token = "NA-unknown";
+                $accuracy_explanation = "cannot find record of " . join(",", @missing_genes);
+                
             }
         }
-
+        
         unless ($accuracy_token) {
             # must be a FP
             $accuracy_token = "FP";
             $accuracy_explanation = "first encounter of FP fusion $fusion_name";
             $FP_fusions{$fusion_name} = 1;
         }
-
+        
         $accuracy_explanation =~ s/\s/_/g;
         
-        print join("\t", $accuracy_token, @x, $accuracy_explanation) . "\n";
+        print join("\t", $accuracy_token, $progname, $sample, @x, $accuracy_explanation) . "\n";
     }
-
+    
 
     ## Report false-negatives (known fusions not predicted)
     
     foreach my $fusion_name (keys %TP_fusions) {
         if (! $seen_TP{$fusion_name}) {
-            print join("\t", "FN", $fusion_name, 0, 0, "lacking_this_fusion_prediction") . "\n";
+            print join("\t", "FN", $progname, $sample, $fusion_name, 0, 0, "lacking_this_fusion_prediction") . "\n";
         }
     }
     
@@ -215,7 +244,12 @@ sub find_overlapping_genes {
     # allow for comma-separated lists
     foreach my $gene (split(/,/, $genes)) {
         
-        my $gene_info_struct = $gene_id_to_coords_href->{$gene} or die "Error, not finding gene info for [$gene] ";
+        my $gene_info_struct = $gene_id_to_coords_href->{$gene};
+        
+        unless ($gene_info_struct) {
+            print STDERR "WARNING - not finding a record of gene $gene\n";
+            next;
+        }
         
         my $chr = $gene_info_struct->{chr};
         my $lend = $gene_info_struct->{lend};
@@ -226,6 +260,10 @@ sub find_overlapping_genes {
         my $overlaps_aref = $itree->fetch($lend, $rend);
         
         if ($overlaps_aref && @$overlaps_aref) {
+            
+            unless ( grep { $_ eq $gene } @$overlaps_aref) {
+                die "Error, found overlapping genes for $gene, but doesn't include $gene : { @$overlaps_aref } ";
+            }
             push (@overlapping_genes, @$overlaps_aref);
         }
     }

@@ -73,15 +73,16 @@ sub parse_file {
     open (my $fh, $fusions_file) or die $!;
     while (<$fh>) {
         chomp;
-        my ($pred_type, $fusion, $J, $S, @rest) = split(/\t/);
+        my ($pred_type, $progname, $sample_name, $fusion, $J, $S, @rest) = split(/\t/);
         
         unless ($pred_type =~ /^(TP|FP|FN)$/) { next; }
         
+        my $fusion_token = join("::", $progname, $sample_name, $fusion);
         
-        if ($seen{$fusion}) {
-            die "Error, already processed fusion [$fusion], and these should be unique entries in this file $fusions_file";
+        if ($seen{$fusion_token}) {
+            die "Error, already processed fusion [$fusion_token], and these should be unique entries in this file $fusions_file";
         }
-        $seen{$fusion} = 1 ;
+        $seen{$fusion_token} = 1 ;
         
         my $val = $J + $S;
         
