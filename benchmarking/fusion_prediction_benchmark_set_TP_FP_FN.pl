@@ -9,7 +9,7 @@ use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 
 my $usage = <<__EOUSAGE__;
 
-######################################################################
+#################################################################################################
 #
 # Required:
 #
@@ -28,7 +28,11 @@ my $usage = <<__EOUSAGE__;
 #
 #  --allow_reverse_fusion     if true fusion is A--B, allow for it to be reported as B--A
 #
-######################################################################
+#  --allow_paralogs <string>  file containing tab-delimited list of paralog clusters
+#                             so if TP_A--TP_B  is a true fusion,
+#                               paraA1--paraB2  would be considered an ok proxy and scored as a TP.
+#
+##################################################################################################
 
 
 __EOUSAGE__
@@ -47,6 +51,9 @@ my $truth_fusions_file;
 
 my $ALLOW_REVERSE_FUSION = 0;
 
+my $ALLOW_PARALOGS = 0;
+my $paralogs_file;
+
 &GetOptions ( 'h' => \$help_flag,
               
               'progname=s' => \$progname,
@@ -58,6 +65,7 @@ my $ALLOW_REVERSE_FUSION = 0;
               
               'allow_reverse_fusion' => \$ALLOW_REVERSE_FUSION,
               
+              'allow_paralogs=s' => \$paralogs_file,
     );
 
 
@@ -71,6 +79,10 @@ unless ($progname && $sample
 
 }
 
+if ($paralogs_file) {
+    $ALLOW_PARALOGS = 1;
+}
+
 
 main : {
 
@@ -82,6 +94,12 @@ main : {
     my %FP_fusions;
     my %seen_TP;
 
+    my %paralog_fusion_to_TP_fusion;
+    if ($ALLOW_PARALOGS) {
+        %paralog_fusion_to_TP_fusion = &parse_paralogs_integrate_parafusions(\%TP_fusions, $paralogs_file);
+    }
+
+    
     # print header
     print join("\t", "#pred_result", "ProgName", "Sample", "FusionName", "J", "S", "explanation") . "\n";
 
@@ -93,10 +111,40 @@ main : {
         
         my $fusion_name = $x[0];
         my ($geneA, $geneB) = split(/--/, $fusion_name);
-        
-        
+                
         my $reverse_fusion_name = "$geneB--$geneA";
         
+        my $using_para_fusion_flag = 0;
+
+
+        if ($ALLOW_PARALOGS) {
+            unless ($TP_fusions{$fusion_name} || ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_fusion_name}) ) {
+                
+                my $adj_fusion;
+                
+                if (my $TP_fusion = $paralog_fusion_to_TP_fusion{$fusion_name}) {
+                    $adj_fusion = $TP_fusion;
+                }
+                elsif ($ALLOW_REVERSE_FUSION && ($TP_fusion = $paralog_fusion_to_TP_fusion{$reverse_fusion_name}) ) {
+                    $adj_fusion = $TP_fusion;
+                }
+                
+                if ($adj_fusion) {
+                    # rest important vars here
+                    
+                    $using_para_fusion_flag = 1;
+                    
+                    print STDERR "-substituting PARA fusion ($adj_fusion) for TP fusion ($fusion_name)\n";
+                    
+                    $fusion_name = $adj_fusion;
+                    ($geneA, $geneB) = split(/--/, $fusion_name);
+                    
+                    $reverse_fusion_name = "$geneB--$geneA";
+                }
+            } 
+        }
+        
+
         my ($accuracy_token, $accuracy_explanation);
 
         ############################
@@ -236,6 +284,11 @@ main : {
             $FP_fusions{$fusion_name} = 1;
         }
         
+        
+        if ($using_para_fusion_flag) {
+            $accuracy_explanation .= " (using_para_fusion)";
+        }
+        
         $accuracy_explanation =~ s/\s/_/g;
         
         print join("\t", $accuracy_token, $progname, $sample, @x, $accuracy_explanation) . "\n";
@@ -339,6 +392,56 @@ sub find_overlapping_genes {
     }
 
     return(@overlapping_genes);
+
+}
+
+####
+sub parse_paralogs_integrate_parafusions {
+    my ($TP_fusions_href, $paralogs_file) = @_;
+    
+    my %gene_to_para_list;
+    {
+        open (my $fh, $paralogs_file) or die $!;
+        while (<$fh>) {
+            chomp;
+            my @x = split(/\s+/);
+            
+            foreach my $gene (@x) {
+                $gene_to_para_list{$gene} = \@x;
+            }
+        }
+        close $fh;
+    }
+
+
+    
+    my %paralog_fusion_to_TP_fusion;
+
+    my @TP_fusions = keys %$TP_fusions_href;
+
+    foreach my $TP_fusion (@TP_fusions) {
+        my ($geneA, $geneB) = split(/--/, $TP_fusion);
+        
+        my @paraA = ($geneA);
+        if (my $para_aref = $gene_to_para_list{$geneA}) {
+            @paraA = @$para_aref;
+        }
+        my @paraB = ($geneB);
+        if (my $para_aref = $gene_to_para_list{$geneB}) {
+            @paraB = @$para_aref;
+        }
+
+        foreach my $gA (@paraA) {
+            foreach my $gB (@paraB) {
+
+                my $para_fusion = "$gA--$gB";
+                
+                $paralog_fusion_to_TP_fusion{$para_fusion} = $TP_fusion;
+            }
+        }
+    }
+    
+    return(%paralog_fusion_to_TP_fusion);
 
 }
 
