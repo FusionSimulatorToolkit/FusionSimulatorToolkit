@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Set::IntervalTree;
-
+use Carp;
 
 use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 
@@ -174,23 +174,20 @@ sub find_overlapping_genes {
         my $gene_info_struct = $gene_id_to_coords_href->{$gene};
         
         unless ($gene_info_struct) {
-            print STDERR "WARNING - not finding a record of gene $gene\n";
-            next;
+            confess "ERROR - not finding a record of gene $gene\n";
         }
         
         my $chr = $gene_info_struct->{chr};
         my $lend = $gene_info_struct->{lend};
         my $rend = $gene_info_struct->{rend};
         
-        my $itree = $interval_trees_href->{$chr} or die "Error, no interval tree stored for chr [$chr]";
+        my $itree = $interval_trees_href->{$chr};
+        unless ($itree) { next; }
         
         my $overlaps_aref = $itree->fetch($lend, $rend);
         
         if ($overlaps_aref && @$overlaps_aref) {
             
-            unless ( grep { $_ eq $gene } @$overlaps_aref) {
-                die "Error, found overlapping genes for $gene, but doesn't include $gene : { @$overlaps_aref } ";
-            }
             push (@overlapping_genes, @$overlaps_aref);
         }
     }
@@ -313,13 +310,13 @@ sub report_fusions {
         my @lines = @{$sample_fusions_href->{$sample}};
         foreach my $line (@lines) {
             my @x = split(/\t/, $line);
-            my $fusion_name = $x[0];
+            my $fusion_name = $x[1];
             if ($fusion_name ne $use_fusion_name) {
                 push (@x, $fusion_name);
-                $x[0] = $use_fusion_name;
+                $x[1] = $use_fusion_name;
             }
             else {
-                push (@x, "=");
+                push (@x, "***=***");
             }
 
             print join("\t", @x) . "\n";
