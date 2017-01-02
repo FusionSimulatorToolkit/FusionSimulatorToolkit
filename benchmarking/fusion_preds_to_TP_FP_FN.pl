@@ -88,8 +88,8 @@ main : {
         %unsure_fusions = &parse_fusion_listing($unsure_fusions_file);
     }
     
-    my %FP_fusions;
-    my %seen_TP;
+    my %FP_progFusions;
+    my %seen_progTP;
 
     my %paralog_fusion_to_TP_fusion;
     if ($ALLOW_PARALOGS) {
@@ -153,12 +153,12 @@ main : {
         ############################
         ## Check for already seen TP
         
-        if ($seen_TP{"$prog_name,$fusion_name"}) {
+        if ($seen_progTP{"$prog_name,$fusion_name"}) {
             $accuracy_token = "NA-TP";
             $accuracy_explanation = "already scored $fusion_name as TP";
         }
         
-        elsif ($ALLOW_REVERSE_FUSION && $seen_TP{"$prog_name,$reverse_fusion_name"}) {
+        elsif ($ALLOW_REVERSE_FUSION && $seen_progTP{"$prog_name,$reverse_fusion_name"}) {
             $accuracy_token = "NA-TP_rev";
             $accuracy_explanation = "already scored $fusion_name (rev) as TP";
         }
@@ -166,12 +166,12 @@ main : {
         ############################
         ## Check for already seen FP
         
-        elsif ($FP_fusions{"$prog_name,$fusion_name"}) {
+        elsif ($FP_progFusions{"$prog_name,$fusion_name"}) {
             $accuracy_token = "NA-FP";
             $accuracy_explanation = "already scored $fusion_name as FP";
         }
 
-        elsif ($ALLOW_REVERSE_FUSION && $FP_fusions{"$prog_name,$reverse_fusion_name"}) {
+        elsif ($ALLOW_REVERSE_FUSION && $FP_progFusions{"$prog_name,$reverse_fusion_name"}) {
             $accuracy_token = "NA-FP_rev";
             $accuracy_explanation = "already scored $fusion_name (rev) as FP";
         }
@@ -192,13 +192,13 @@ main : {
         
         elsif ($TP_fusions{$fusion_name}) {
             $accuracy_token = "TP";
-            $seen_TP{"$prog_name,$fusion_name"} = 1;
+            $seen_progTP{"$prog_name,$fusion_name"} = 1;
             $accuracy_explanation = "first encounter of TP $fusion_name";
         }
         
         elsif ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_fusion_name}) {
             $accuracy_token = "TP";
-            $seen_TP{"$prog_name,$fusion_name"} = 1;
+            $seen_progTP{"$prog_name,$fusion_name"} = 1;
             $accuracy_explanation = "first encounter of TP $fusion_name (rev)";
         }
         
@@ -228,11 +228,11 @@ main : {
                         
                         ###########################
                         # check for already seen TP
-                        if ($seen_TP{"$prog_name,$candidate_fusion"}) {
+                        if ($seen_progTP{"$prog_name,$candidate_fusion"}) {
                             $existing_TPs{$candidate_fusion} = 1;
                         }
 
-                        elsif ($ALLOW_REVERSE_FUSION && $seen_TP{"$prog_name,$reverse_candidate_fusion"}) {
+                        elsif ($ALLOW_REVERSE_FUSION && $seen_progTP{"$prog_name,$reverse_candidate_fusion"}) {
                             $existing_TPs{$reverse_candidate_fusion} = 1;
                         }
                         
@@ -258,11 +258,11 @@ main : {
                         #############################
                         ## Check for already seen FPs
                         
-                        elsif ($FP_fusions{"$prog_name,$candidate_fusion"}) {
+                        elsif ($FP_progFusions{"$prog_name,$candidate_fusion"}) {
                             $existing_FPs{$candidate_fusion} = 1;
                         }
                         
-                        elsif ($ALLOW_REVERSE_FUSION && $FP_fusions{"$prog_name,$reverse_candidate_fusion"}) {
+                        elsif ($ALLOW_REVERSE_FUSION && $FP_progFusions{"$prog_name,$reverse_candidate_fusion"}) {
                             $existing_FPs{$reverse_candidate_fusion} = 1;
                         }
                     }
@@ -271,7 +271,7 @@ main : {
                 if (my @new_TPs = keys %newly_found_TPs) {
                     $accuracy_token = "TP";
                     foreach my $f (@new_TPs) {
-                        $seen_TP{"$prog_name,$f"} = 1;
+                        $seen_progTP{"$prog_name,$f"} = 1;
                     }
                     $accuracy_explanation = "chr mapping to first encounter of TP " . join(",", @new_TPs);
                 }
@@ -307,7 +307,7 @@ main : {
             # must be a FP
             $accuracy_token = "FP";
             $accuracy_explanation = "first encounter of FP fusion $fusion_name";
-            $FP_fusions{"$prog_name,$fusion_name"} = 1;
+            $FP_progFusions{"$prog_name,$fusion_name"} = 1;
         }
         
         
@@ -325,7 +325,7 @@ main : {
     
     foreach my $prog_name (keys %prog_names) {
         foreach my $fusion_name (keys %TP_fusions) {
-            if (! $seen_TP{"$prog_name,$fusion_name"}) {
+            if (! $seen_progTP{"$prog_name,$fusion_name"}) {
                 my ($sample_name, $core_fusion_name) = split(/\|/, $fusion_name);
                 print join("\t", "FN", $prog_name, $sample_name, $core_fusion_name, 0, 0, "lacking_this_fusion_prediction") . "\n";
             }
