@@ -16,6 +16,8 @@ main: {
         chomp;
         my ($sample_name, $prog, $fusion_name, $junc_support, $frag_support) = split(/\t/);
         
+        $fusion_name = "$sample_name|$fusion_name";
+        
         $fusion_to_prog{$fusion_name}->{$prog}++;
     }
     close $fh;
