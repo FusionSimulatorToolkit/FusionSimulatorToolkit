@@ -52,7 +52,7 @@ main: {
         
         my $F1 = "NA";
         eval {
-            $F1 = sprintf("%.2f", 2 * $Sn * $Sp / ($Sn + $Sp) );
+            $F1 = sprintf("%.3f", 2 * $Sn * $Sp / ($Sn + $Sp) );
         };
         
         print join("\t", $prog_name, $min_val, $num_TP, $num_FP, $TPR, $PPV, $F1) . "\n";

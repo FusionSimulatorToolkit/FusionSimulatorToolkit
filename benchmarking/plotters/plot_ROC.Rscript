@@ -49,20 +49,19 @@ main = function() {
 	## Plot TP vs. FP as ROC-like
     
 	print("Plotting TP vs. FP")
-	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP")
+	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP", t='b')
 	
 	for (i in 1:length(prognames)) {
         prog_data = p[[ prognames[i] ]]
 
         if (nrow(prog_data) > 0) {
-           points(prog_data$FP, prog_data$TP, col=prog_colors[i], pch=i)
+           points(prog_data$FP, prog_data$TP, col=prog_colors[i], pch=i, t='b')
            #text(prog_data$FP, prog_data$TP, labels=prognames[i], cex=0.6, pos=4)
         }
     }
 
 	plot.new()	
 	legend('topleft', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
-
 
 
 	###################
@@ -72,13 +71,13 @@ main = function() {
 	max_TPR = max(data$TPR)
 	max_FDR = max(data$FDR)
 
-	plot(0,0, xlim=c(0,max_FDR), ylim=c(0,max_TPR), xlab="FDR", ylab="TPR", main="TPR vs. FDR")
+	plot(0,0, xlim=c(0,max_FDR), ylim=c(0,max_TPR), xlab="FDR", ylab="TPR", main="TPR vs. FDR", t='b')
 	
 	for (i in 1:length(prognames)) {
         prog_data = p[[ prognames[i] ]]
 
         if (nrow(prog_data) > 0) {
-           points(prog_data$FDR, prog_data$TPR, col=prog_colors[i], pch=i)
+           points(prog_data$FDR, prog_data$TPR, col=prog_colors[i], pch=i, t='b')
         }
     }
 	
