@@ -112,7 +112,8 @@ main : {
         
         $prog_names{$prog_name} = 1;
         
-        $fusion_name = "$sample|$fusion_name";
+        my $core_fusion_name = $fusion_name;
+        $fusion_name = "$sample|$core_fusion_name";
         
         my $reverse_fusion_name = "$sample|$geneB--$geneA";
         
@@ -317,7 +318,7 @@ main : {
         
         $accuracy_explanation =~ s/\s/_/g;
         
-        print join("\t", $accuracy_token, $prog_name, $sample, @x, $accuracy_explanation) . "\n";
+        print join("\t", $accuracy_token, $prog_name, $sample, $core_fusion_name, $J, $S, $accuracy_explanation) . "\n";
     }
     
 
