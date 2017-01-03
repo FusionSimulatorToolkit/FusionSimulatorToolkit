@@ -54,7 +54,7 @@ my $ALLOW_PARALOGS = 0;
               'unsure_fusions=s' => \$unsure_fusions_file,
               'allow_reverse_fusion' => \$ALLOW_REVERSE_FUSION,
               
-              'allow_paralogs=s' => \$ALLOW_PARALOGS,
+              'allow_paralogs' => \$ALLOW_PARALOGS,
     );
 
 
@@ -81,6 +81,9 @@ if ($ALLOW_REVERSE_FUSION) {
 if ($ALLOW_PARALOGS) {
     $cmd .= " --allow_paralogs $paralogs_file";
 }
+
+
+print STDERR "CMD: $cmd\n";
 
 my $ret = system($cmd);
 
