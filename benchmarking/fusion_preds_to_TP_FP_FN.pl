@@ -340,27 +340,71 @@ main : {
 
 ####
 sub build_interval_trees {
-    my ($gene_spans_file, $gene_id_to_coords_href) = @_;
+    my ($gene_spans_files, $gene_id_to_coords_href) = @_;
 
     my %interval_trees;
     
-    open (my $fh, $gene_spans_file) or die "Error, cannot open file $gene_spans_file";
-    while (<$fh>) {
-        chomp;
-        my ($gene_id, $chr, $lend, $rend, $orient, $gene_symbol) = split(/\t/);
-
-        my $itree = $interval_trees{$chr};
-        unless (ref $itree) {
-            $itree = $interval_trees{$chr} = Set::IntervalTree->new;
-        }
-
-        $itree->insert($gene_symbol, $lend, $rend);
+    my @gene_span_files = split(/,/, $gene_spans_files);
     
-        $gene_id_to_coords_href->{$gene_symbol} = { chr => $chr,
-                                                    lend => $lend,
-                                                    rend => $rend };
+    foreach my $gene_spans_file (@gene_span_files) {
+    
+
+        open (my $fh, $gene_spans_file) or die "Error, cannot open file $gene_spans_file";
+        while (<$fh>) {
+            chomp;
+            my ($gene_id, $chr, $lend, $rend, $orient, $gene_symbol) = split(/\t/);
+            
+            if ($chr !~ /chr/) {
+                $chr = "chr$chr";
+            }
+            
+            my $itree = $interval_trees{$chr};
+            unless (ref $itree) {
+                $itree = $interval_trees{$chr} = Set::IntervalTree->new;
+            }
+            
+            
+            
+            unless (exists $gene_id_to_coords_href->{$gene_symbol}) {
+                
+                $itree->insert($gene_symbol, $lend, $rend);
+                
+                $gene_id_to_coords_href->{$gene_symbol} = { chr => $chr,
+                                                            lend => $lend,
+                                                            rend => $rend };
+                
+                
+            }
+            
+            
+            unless (exists $gene_id_to_coords_href->{$gene_id} ) {
+                
+                $itree->insert($gene_id, $lend, $rend);
+                
+                $gene_id_to_coords_href->{$gene_id} = { chr => $chr,
+                                                        lend => $lend,
+                                                        rend => $rend };
+            }
+            
+            
+            my $core_gene_id = $gene_id;
+            $core_gene_id =~ s/\.\d+$//;
+            if ($core_gene_id ne $gene_id) {
+                
+                unless (exists $gene_id_to_coords_href->{$core_gene_id}) {
+                    
+                    $itree->insert($core_gene_id, $lend, $rend);
+                    
+                    $gene_id_to_coords_href->{$core_gene_id} = { chr => $chr,
+                                                                 lend => $lend,
+                                                                 rend => $rend };
+                }
+            }
+            
+        }
+        close $fh;
     }
-    close $fh;
+
     
     return(%interval_trees);
 }
@@ -399,7 +443,7 @@ sub find_overlapping_genes {
     # allow for comma-separated lists
     foreach my $gene (split(/,/, $genes)) {
         
-        my $gene_info_struct = $gene_id_to_coords_href->{$gene};
+        my $gene_info_struct = $gene_id_to_coords_href->{$gene} || $gene_id_to_coords_href->{lc($gene)}; # try lowercase version of gene id just in case.
         
         unless ($gene_info_struct) {
             print STDERR "WARNING - not finding a record of gene $gene\n";

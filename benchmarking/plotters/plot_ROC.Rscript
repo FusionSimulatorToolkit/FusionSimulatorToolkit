@@ -27,29 +27,12 @@ main = function() {
 	prognames = names(p)
 	prog_colors = rainbow(length(prognames))
 	
-	########################################################
-	## Plot TP vs. FP, just single most sensitive data point
-	
-	print("Plotting TP vs. FP")
-	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP")
-	
-	for (i in 1:length(prognames)) {
-        prog_data = p[[ prognames[i] ]]
-
-        if (nrow(prog_data) > 0) {
-           points(prog_data$FP[1], prog_data$TP[1], col=prog_colors[i], pch=i)
-           text(prog_data$FP[1], prog_data$TP[1], labels=prognames[i], cex=0.6, pos=4)
-        }
-    }
-	plot.new()
-	legend('topleft', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
-
 
 	#############################
 	## Plot TP vs. FP as ROC-like
     
 	print("Plotting TP vs. FP")
-	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP", t='b')
+	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP", t='n')
 	
 	for (i in 1:length(prognames)) {
         prog_data = p[[ prognames[i] ]]
@@ -71,7 +54,7 @@ main = function() {
 	max_TPR = max(data$TPR)
 	max_FDR = max(data$FDR)
 
-	plot(0,0, xlim=c(0,max_FDR), ylim=c(0,max_TPR), xlab="FDR", ylab="TPR", main="TPR vs. FDR", t='b')
+	plot(0,0, xlim=c(0,max_FDR), ylim=c(0,max_TPR), xlab="FDR", ylab="TPR", main="TPR vs. FDR", t='n')
 	
 	for (i in 1:length(prognames)) {
         prog_data = p[[ prognames[i] ]]
@@ -93,7 +76,7 @@ main = function() {
 	max_min_frag_sum = 20
 	max_F1 = max(data$F1, na.rm=T)
 	
-	plot(0,0, xlim=c(0,max_min_frag_sum), ylim=c(0,max_F1), xlab="min_sum_frags", ylab="F1", main="F1 vs. min_sum_frags")
+	plot(0,0, xlim=c(0,max_min_frag_sum), ylim=c(0,max_F1), xlab="min_sum_frags", ylab="F1", main="F1 vs. min_sum_frags", t='n')
 	
 	for (i in 1:length(prognames)) {
         prog_data = p[[ prognames[i] ]]
