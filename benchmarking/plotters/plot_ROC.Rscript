@@ -82,12 +82,43 @@ main = function() {
         prog_data = p[[ prognames[i] ]]
 
         if (nrow(prog_data) > 0) {
-           points(prog_data$min_sum_frags, prog_data$F1, col=prog_colors[i], pch=i)
+           points(prog_data$min_sum_frags, prog_data$F1, col=prog_colors[i], pch=i, t='b')
         }
     }
 	
 	plot.new()
 	legend('topleft', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
+
+
+
+	#########################
+	## Plot TP, FP for just the single most accurate (highest F1) data point.
+
+	print("Plotting TP,FP for max accuracy point")
+	max_TP = max(data$TP)
+	max_FP = max(data$FP)
+	
+	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP for max F1", t='n')
+	
+	for (i in 1:length(prognames)) {
+        prog_data = p[[ prognames[i] ]]
+		
+		prog_data = prog_data[rev(order(prog_data$F1)),]
+
+        if (nrow(prog_data) > 0) {
+           points(prog_data$FP[1], prog_data$TP[1], col=prog_colors[i], pch=i)
+        }
+    }
+	
+	plot.new()
+	legend('topleft', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
+
+
+
+
+
+
+
 
 	quit(save = "no", status = 0, runLast = FALSE)
 

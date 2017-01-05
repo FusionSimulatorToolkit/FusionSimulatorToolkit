@@ -74,7 +74,8 @@ my $gene_spans_file = join(",", ("/seq/regev_genome_portal/RESOURCES/CTAT_GENOME
                            )
     );
 
-my $paralogs_file = "/seq/regev_genome_portal/RESOURCES/CTAT_GENOME_LIB/GRCh37_gencode_v19_FL3/blastn/nuc_clusters.dat";
+#my $paralogs_file = "/seq/regev_genome_portal/RESOURCES/CTAT_GENOME_LIB/GRCh37_gencode_v19_FL3/blastn/nuc_clusters.dat";
+my $paralogs_file = "/seq/regev_genome_portal/RESOURCES/CTAT_GENOME_LIB/GRCh37_gencode_v19_FL3/blastn/paralog_clusters.dat";
 
 
 my $cmd = "$FindBin::Bin/fusion_preds_to_TP_FP_FN.pl --fusion_preds $fusion_preds_file --truth_fusions $truth_fusions_file --gene_spans $gene_spans_file";

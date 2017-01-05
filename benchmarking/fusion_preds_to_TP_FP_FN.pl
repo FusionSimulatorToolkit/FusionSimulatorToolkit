@@ -354,6 +354,9 @@ sub build_interval_trees {
             chomp;
             my ($gene_id, $chr, $lend, $rend, $orient, $gene_symbol) = split(/\t/);
             
+            $gene_symbol = uc $gene_symbol;
+            $gene_id = uc $gene_id;
+            
             if ($chr !~ /chr/) {
                 $chr = "chr$chr";
             }
@@ -443,7 +446,9 @@ sub find_overlapping_genes {
     # allow for comma-separated lists
     foreach my $gene (split(/,/, $genes)) {
         
-        my $gene_info_struct = $gene_id_to_coords_href->{$gene} || $gene_id_to_coords_href->{lc($gene)}; # try lowercase version of gene id just in case.
+        $gene = uc $gene;
+        
+        my $gene_info_struct = $gene_id_to_coords_href->{$gene}; # try lowercase version of gene id just in case.
         
         unless ($gene_info_struct) {
             print STDERR "WARNING - not finding a record of gene $gene\n";
