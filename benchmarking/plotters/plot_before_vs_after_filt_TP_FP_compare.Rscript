@@ -10,7 +10,7 @@ if (length(args) != 2) {
 before_dat_filename = args[1]
 after_dat_filename = args[2]
 
-pdf_filename = paste0(after_dat_filename, 'before_vs_after.pdf')
+pdf_filename = paste0(after_dat_filename, '.before_vs_after.pdf')
 pdf(pdf_filename, width=10)
 
 
