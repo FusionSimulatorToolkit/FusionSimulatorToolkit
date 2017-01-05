@@ -99,27 +99,34 @@ main = function() {
 	max_FP = max(data$FP)
 	
 	plot(0,0, xlim=c(0,max_FP), ylim=c(0,max_TP), xlab="FP", ylab="TP", main="TP vs. FP for max F1", t='n')
+
+	best_df = NULL
 	
 	for (i in 1:length(prognames)) {
         prog_data = p[[ prognames[i] ]]
-		
+		prog_data = prog_data[! is.na(prog_data$F1),]		
+	    
 		prog_data = prog_data[rev(order(prog_data$F1)),]
 
         if (nrow(prog_data) > 0) {
            points(prog_data$FP[1], prog_data$TP[1], col=prog_colors[i], pch=i)
-        }
-    }
-	
+           if (is.null(best_df)) {
+			  best_df = prog_data[1,,drop=F]
+           }
+           else {
+              best_df = rbind(best_df, prog_data[1,,drop=F])
+           }
+       }
+	}
+
 	plot.new()
 	legend('topleft', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
 
+    best_df = best_df[rev(order(best_df$F1)),]
+    print(best_df)
 
-
-
-
-
-
-
+    barplot(best_df$F1, names.arg=best_df$prog, las=2, ylim=c(0,min(max(best_df$F1+0.05), 1)))
+	
 	quit(save = "no", status = 0, runLast = FALSE)
 
 }
