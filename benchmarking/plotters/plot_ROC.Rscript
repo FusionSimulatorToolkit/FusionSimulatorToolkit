@@ -128,7 +128,7 @@ main = function() {
     barplot(best_df$F1, names.arg=best_df$prog, las=2, ylim=c(0,min(max(best_df$F1+0.05), 1)))
 
 	best_filename = paste(dat_filename, '.best.dat', sep='')
-	write.table(best_df, file=best_filename, quote=F, sep="\t")	
+	write.table(best_df, file=best_filename, quote=F, sep="\t", row.names=F)	
 	
 	quit(save = "no", status = 0, runLast = FALSE)
 
