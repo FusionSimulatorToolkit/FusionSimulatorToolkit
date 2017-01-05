@@ -108,6 +108,8 @@ main : {
         my @x = split(/\t/);
         
         my ($sample, $prog_name, $fusion_name, $J, $S) = @x;
+        $fusion_name = uc $fusion_name;
+        
         my ($geneA, $geneB) = split(/--/, $fusion_name);
         
         $prog_names{$prog_name} = 1;
@@ -424,7 +426,10 @@ sub parse_fusion_listing {
         chomp;
         my $fusion = $_;
         if ($fusion =~ /^(\S+)\|(\S+)--(\S+)$/) {
-            $fusions{$fusion} = 1;
+            my $sample = $1;
+            my $geneA = uc $2;
+            my $geneB = uc $3;
+            $fusions{"$sample|$geneA--$geneB"} = 1;
         }
         else {
             die "Error, cannot parse fusion: $fusion as samplename|fusionA--fusionB";
@@ -485,7 +490,8 @@ sub parse_paralogs_integrate_parafusions {
         open (my $fh, $paralogs_file) or die $!;
         while (<$fh>) {
             chomp;
-            my @x = split(/\s+/);
+            
+            my @x = split(/\s+/, uc $_);
             
             foreach my $gene (@x) {
                 $gene_to_para_list{$gene} = \@x;
