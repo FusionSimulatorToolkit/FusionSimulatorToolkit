@@ -421,7 +421,7 @@ sub parse_fusion_listing {
 
     my %fusions;
     
-    open (my $fh, $fusions_file) or die $!;
+    open (my $fh, $fusions_file) or die "Error, cannot open file $fusions_file";
     while (<$fh>) {
         chomp;
         my $fusion = $_;
