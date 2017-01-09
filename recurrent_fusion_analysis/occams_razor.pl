@@ -78,6 +78,7 @@ main : {
     
     open (my $fh, $fusion_preds_file) or die "Error, cannot open file $fusion_preds_file";
     my $header = <$fh>;
+    chomp $header;
     unless ($header =~ /^\#/) {
         die "Error, table header line must start with '#'";
     }
@@ -93,6 +94,9 @@ main : {
     #  if a different pair of gene names match up to the same genomic locus
     #  and it was reported less frequently than a more dominant fusion pair,
     #  assign the dominant fusion pair name to that fusion.
+
+    
+    print join("\t", $header, "orig_fusion_name") . "\n";
     
     my %interval_trees;
     my %seen_fusion;

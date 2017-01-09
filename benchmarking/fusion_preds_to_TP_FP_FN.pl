@@ -163,7 +163,7 @@ main : {
         
         elsif ($ALLOW_REVERSE_FUSION && $seen_progTP{"$prog_name,$reverse_fusion_name"}) {
             $accuracy_token = "NA-TP_rev";
-            $accuracy_explanation = "already scored $fusion_name (rev) as TP";
+            $accuracy_explanation = "already scored $reverse_fusion_name (rev) as TP";
         }
 
         ############################
@@ -176,7 +176,7 @@ main : {
 
         elsif ($ALLOW_REVERSE_FUSION && $FP_progFusions{"$prog_name,$reverse_fusion_name"}) {
             $accuracy_token = "NA-FP_rev";
-            $accuracy_explanation = "already scored $fusion_name (rev) as FP";
+            $accuracy_explanation = "already scored $reverse_fusion_name (rev) as FP";
         }
         
         ###########
@@ -187,7 +187,7 @@ main : {
         }
         elsif (%unsure_fusions && $ALLOW_REVERSE_FUSION && $unsure_fusions{$reverse_fusion_name}) {
             $accuracy_token = "NA-UNCLASS_rev";
-            $accuracy_explanation = "not classifying $fusion_name (rev), in unsure list";
+            $accuracy_explanation = "not classifying $reverse_fusion_name (rev), in unsure list";
         }
                 
         ###############################
@@ -201,8 +201,8 @@ main : {
         
         elsif ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_fusion_name}) {
             $accuracy_token = "TP";
-            $seen_progTP{"$prog_name,$fusion_name"} = 1;
-            $accuracy_explanation = "first encounter of TP $fusion_name (rev)";
+            $seen_progTP{"$prog_name,$reverse_fusion_name"} = 1;
+            $accuracy_explanation = "first encounter of TP $reverse_fusion_name (rev)";
         }
         
         else {
