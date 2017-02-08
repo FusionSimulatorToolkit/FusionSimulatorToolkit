@@ -49,7 +49,7 @@ my $sum_tpm = 0;
         my $acc = $x[0];
         my $tpm = $x[5];
         if ($involved_in_chim{$acc}) {
-            $tpm = 1 + 2**(rand(15));
+            $tpm = 1 + 2**(rand(10));
             print STDERR "-chim_related: $acc => tpm: $tpm\n";
         }
         $isoform_to_tpm{$acc} = $tpm;
