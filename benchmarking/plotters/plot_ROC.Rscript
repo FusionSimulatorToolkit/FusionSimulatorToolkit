@@ -68,6 +68,27 @@ main = function() {
 	legend('topleft', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
 	
 
+	###################
+	## Plot TPR ~ PPV
+	
+	print("Plotting TPR ~ FDR")
+	max_TPR = max(data$TPR)
+	max_PPV = max(data$PPV)
+
+	plot(0,0, ylim=c(0,max_PPV), xlim=c(0,max_TPR), ylab="PPV", xlab="TPR", main="TPR vs. PPV", t='n')
+	
+	for (i in 1:length(prognames)) {
+        prog_data = p[[ prognames[i] ]]
+
+        if (nrow(prog_data) > 0) {
+           points(prog_data$TPR, prog_data$PPV, col=prog_colors[i], pch=i, t='b')
+        }
+    }
+	
+	plot.new()
+	legend('topleft', legend=prognames, col=prog_colors, pch=seq(1,length(prognames)));
+
+
 
 	#########################
 	## Plot F1 ~ min_frag_sum
