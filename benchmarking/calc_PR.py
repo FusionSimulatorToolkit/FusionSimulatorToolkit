@@ -28,7 +28,9 @@ def main():
     auc = 0.0
 
     with open(args.in_ROC_file) as fin, open(args.out_PR_file, "w") as fout:
-        next(fin)
+        # write header
+        fout.write("{}\t{}\t{}\t{}\n".format('prog', 'recall', 'precision', 'actual'))
+        next(fin) # skip header line
         for line in fin:
             fields = line.strip().split()
 
