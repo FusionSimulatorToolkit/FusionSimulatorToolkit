@@ -1,0 +1,24 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+if (length(args) != 1) {
+    stop("require param: file.auc ")
+}
+
+
+auc = args[1]
+
+data = read.table(auc, header=F, row.names=1)
+data = t(data)
+
+
+barplot_filename = paste0(auc, ".barplot.pdf")
+pdf(barplot_filename)
+
+data = data[,rev(order(data[1,]))]
+
+barplot(data, las=2)
+
+dev.off()
+
