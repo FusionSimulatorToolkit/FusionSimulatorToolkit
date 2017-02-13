@@ -12,7 +12,7 @@ main: {
 
     my %data = &parse_file($tp_fp_fn_file);    
     
-    print join("\t", "#prog", "min_sum_frags", "TP", "FP", "TPR", "PPV", "F1") . "\n";
+    print join("\t", "prog", "min_sum_frags", "TP", "FP", "FN", "TPR", "PPV", "F1") . "\n";
 
     foreach my $prog (keys %data) {
         my $progdata_href = $data{$prog};
@@ -49,7 +49,8 @@ sub make_ROC {
 
         my $num_TP = scalar(@TP_fusions);
         my $num_FP = scalar(@FP_fusions);
-
+        my $num_FN = $num_truth_fusions - $num_TP;
+        
         my $TPR = sprintf("%.2f", $num_TP / $num_truth_fusions); # True Positive Rate
 
         my $FDR = sprintf("%.2f", $num_FP / ($num_FP + $num_TP)); # False Discovery Rate
@@ -66,7 +67,7 @@ sub make_ROC {
             $F1 = sprintf("%.3f", 2 * $Sn * $Sp / ($Sn + $Sp) );
         };
         
-        print join("\t", $prog_name, $min_val, $num_TP, $num_FP, $TPR, $PPV, $F1) . "\n";
+        print join("\t", $prog_name, $min_val, $num_TP, $num_FP, $num_FN, $TPR, $PPV, $F1) . "\n";
     }
     
     return;
