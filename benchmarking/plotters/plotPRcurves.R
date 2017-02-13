@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# contributed by Bo Li
+# contributed by Bo Li, mod by bhaas
 
 argv = commandArgs(TRUE)
 if (length(argv) != 2) {
@@ -8,7 +8,6 @@ if (length(argv) != 2) {
    q(status = 1)
 }
 
-library(PRROC)
 
 plotPR = function(id, progs, data) {
 	idx = data[,1] == progs[id]
@@ -20,7 +19,7 @@ plotPR = function(id, progs, data) {
 	}
 }
 
-data = read.table(argv[1])
+data = read.table(argv[1], header=T)
 progs = levels(data[,1])
 
 pdf(argv[2])
