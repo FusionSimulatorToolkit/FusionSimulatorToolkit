@@ -26,7 +26,7 @@ for (auc in args) {
 }
 
 
-summary_table = summary_table[,rev(order(colMeans(summary_table)))]
+summary_table = summary_table[,rev(order(apply(summary_table, 2, median)))]
 
 print(summary_table)
 
