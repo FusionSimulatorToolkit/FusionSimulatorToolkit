@@ -16,7 +16,9 @@ l = split(data, data[,1])
 
 l2 = lapply(l, function(x) { x[,2] })
 
-pdf("auc.boxplot.pdf")
+
+pdf_filename = paste0(auc, ".AUC_boxplot.pdf")
+pdf(pdf_filename)
 boxplot(l2[ rev(order(sapply(l2, function(x) { median(x) })) ) ], las=2, outline=F)
 
 dev.off()
