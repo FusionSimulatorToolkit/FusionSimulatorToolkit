@@ -29,11 +29,9 @@ dt_auc_median = dt[,.(auc.median=median(auc)), by=.(progname)][order(auc.median)
 
 all_dat$progname = factor(all_dat$progname, levels=factor(dt_auc_median$progname))
 
-all_dat$progname = relevel
+p = ggplot(all_dat, aes(factor(progname), auc)) + geom_boxplot(aes(fill=read_type)) + coord_flip();
 
-p = ggplot(all_dat, aes(factor(progname), auc)) + geom_boxplot(aes(fill=read_type)) + coord_flip() + geom_jitter();
-
-pdf_filename("combined_50_vs_100_auc_boxplot.pdf")
+pdf("combined_50_vs_100_auc_boxplot.pdf")
 plot(p)
 
 dev.off()
