@@ -9,7 +9,6 @@ use Data::Dumper;
 
 my $usage = "\n\n\tusage: $0 preds.collected.scored fusion_TPM_values.dat\n\n";
 
-
 my $preds_file = $ARGV[0] or die $usage;
 my $fusion_TPMs_file = $ARGV[1] or die $usage;
 
