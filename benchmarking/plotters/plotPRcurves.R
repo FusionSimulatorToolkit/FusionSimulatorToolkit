@@ -8,22 +8,24 @@ if (length(argv) != 2) {
    q(status = 1)
 }
 
+lwd=1
 
-plotPR = function(id, progs, data) {
+plotPR = function(id, progs, data, colors) {
 	idx = data[,1] == progs[id]
 	if (id == 1) {
-		plot(data[idx,2], data[idx,3], type = 'l', lwd = 3, col = id, lty = id, xlim = c(0, 1), ylim = c(0, 1), xlab = "Recall", ylab = "Precision")
+		plot(data[idx,2], data[idx,3], type = 'l', lwd = lwd, col = colors[id], lty = id, xlim = c(0, 1), ylim = c(0, 1), xlab = "Recall", ylab = "Precision")
 	} else {
 		par(new = T)
-		plot(data[idx,2], data[idx,3], type = 'l', lwd = 3, col = id, lty = id, xlim = c(0, 1), ylim = c(0, 1), xlab = "", ylab = "")
+		plot(data[idx,2], data[idx,3], type = 'l', lwd = lwd, col = colors[id], lty = id, xlim = c(0, 1), ylim = c(0, 1), xlab = "", ylab = "")
 	}
 }
 
 data = read.table(argv[1], header=T)
 progs = levels(data[,1])
+colors = rainbow(length(progs))
 
 pdf(argv[2])
 par(mar = c(5, 4, 8, 2) + 0.1, xpd = TRUE)
-a = lapply(1:length(progs), plotPR, progs, data)
-legend(x = -0.06, y = 1.3, legend = progs, ncol = 3, lwd = 3, col = 1:length(progs), lty = 1:length(progs), cex = 0.54)
+a = lapply(1:length(progs), plotPR, progs, data, colors)
+legend(x = -0.06, y = 1.3, legend = progs, ncol = 3, lwd = lwd, col = colors, lty = 1:length(progs), cex = 0.54)
 dev.off()
