@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+package PRADA_parser;
 
 use strict;
 use warnings;

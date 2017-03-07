@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+package FusionInspector_parser;
 
 use strict;
 use warnings;
