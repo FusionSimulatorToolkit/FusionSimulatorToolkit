@@ -68,8 +68,26 @@ main: {
         
         my $gencode_A_genes = &get_gencode_overlapping_genes($geneA);
         my $gencode_B_genes = &get_gencode_overlapping_genes($geneB);
+        
+
+        if ($fusion =~ /ENSG/) {
+
+            if ($geneA =~ /ENSG/) {
+                if (my $alias = $GENE_ALIASES{$geneA}) {
+                    $geneA = $alias;
+                }
+            }
+            if ($geneB =~ /ENSG/) {
+                if (my $alias = $GENE_ALIASES{$geneB}) {
+                    $geneB = $alias;
+                }
+            }
+
+            # replace fusion name w/ the ENSG-vals replaced w/ gene symbols
+            $x[2] = "$geneA--$geneB";
+        }
                 
-        print join("\t", $line, $gencode_A_genes, $gencode_B_genes) . "\n";
+        print join("\t", @x, $gencode_A_genes, $gencode_B_genes) . "\n";
         
     }
     close $fh;    
