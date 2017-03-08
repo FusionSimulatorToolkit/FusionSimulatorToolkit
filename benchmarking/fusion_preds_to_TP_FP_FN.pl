@@ -2,8 +2,6 @@
 
 use strict;
 use warnings;
-use Set::IntervalTree;
-
 
 use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 
@@ -12,8 +10,6 @@ my $usage = <<__EOUSAGE__;
 #################################################################################################
 #
 # Required:
-#
-#  --gene_spans <string>      reference annotation gene spans file
 #
 #  --truth_fusions <string>   file containing a list of the true fusions.
 #
@@ -41,7 +37,6 @@ __EOUSAGE__
 
 
 my $help_flag;
-my $gene_spans_file;
 my $fusion_preds_file;
 my $truth_fusions_file;
 
@@ -52,7 +47,6 @@ my $paralogs_file;
 my $unsure_fusions_file;
 
 &GetOptions ( 'h' => \$help_flag,
-              'gene_spans=s' => \$gene_spans_file,
               'fusion_preds=s' => \$fusion_preds_file,
               'truth_fusions=s' => \$truth_fusions_file,
               'unsure_fusions=s' => \$unsure_fusions_file,
@@ -65,7 +59,7 @@ my $unsure_fusions_file;
 
 if ($help_flag) { die $usage; }
 
-unless ($gene_spans_file && $fusion_preds_file && $truth_fusions_file) {
+unless ($fusion_preds_file && $truth_fusions_file) {
     
     die $usage;
 
@@ -75,255 +69,67 @@ if ($paralogs_file) {
     $ALLOW_PARALOGS = 1;
 }
 
+my %TP_fusions = &parse_fusion_listing($truth_fusions_file);
+
+my %unsure_fusions;
+if ($unsure_fusions_file) {
+    %unsure_fusions = &parse_fusion_listing($unsure_fusions_file);
+}
+
+my %FP_progFusions;
+my %seen_progTP;
+
+my %paralog_fusion_to_TP_fusion;
+if ($ALLOW_PARALOGS) {
+    %paralog_fusion_to_TP_fusion = &parse_paralogs_integrate_parafusions(\%TP_fusions, $paralogs_file);
+}
+
+
 
 main : {
-
-    my %gene_id_to_coords;
-    my %interval_trees = &build_interval_trees($gene_spans_file, \%gene_id_to_coords);
-    
-    my %TP_fusions = &parse_fusion_listing($truth_fusions_file);
-    
-    my %unsure_fusions;
-    if ($unsure_fusions_file) {
-        %unsure_fusions = &parse_fusion_listing($unsure_fusions_file);
-    }
-    
-    my %FP_progFusions;
-    my %seen_progTP;
-
-    my %paralog_fusion_to_TP_fusion;
-    if ($ALLOW_PARALOGS) {
-        %paralog_fusion_to_TP_fusion = &parse_paralogs_integrate_parafusions(\%TP_fusions, $paralogs_file);
-    }
-
     
     my %prog_names;
     # print header
-    print join("\t", "#pred_result", "ProgName", "Sample", "FusionName", "J", "S", "explanation") . "\n";
-
+    print join("\t", "pred_result", "sample", "prog", "fusion", "J", "S", "mapped_gencode_A_gene_list", "mapped_gencode_B_gene_list", "explanation") . "\n";
+    
     open (my $fh, $fusion_preds_file) or die "Error, cannot open file $fusion_preds_file";
+    my $header = <$fh>;
+    unless ($header =~ /^sample/) {
+        die "Error, didn't parse expected header of file: $fusion_preds_file";
+    }
     while (<$fh>) {
         chomp;
         if (/^\#/) { next; }
         my @x = split(/\t/);
         
-        my ($sample, $prog_name, $fusion_name, $J, $S) = @x;
+        my ($sample, $prog_name, $fusion_name, $J, $S, $mapped_A_list, $mapped_B_list, @rest) = @x;
         $fusion_name = uc $fusion_name;
+
+        $prog_names{$prog_name} = 1;
         
         my ($geneA, $geneB) = split(/--/, $fusion_name);
         
-        $prog_names{$prog_name} = 1;
+        my @partnersA = ($geneA);
+        my @partnersB = ($geneB);
         
-        my $core_fusion_name = $fusion_name;
-        $fusion_name = "$sample|$core_fusion_name";
-        
-        my $reverse_fusion_name = "$sample|$geneB--$geneA";
-        
-        my $using_para_fusion_flag = 0;
-
-
-        if ($ALLOW_PARALOGS) {
-            unless ($TP_fusions{$fusion_name} || ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_fusion_name}) ) {
-                
-                my $adj_fusion;
-                
-                if (my $TP_fusion = $paralog_fusion_to_TP_fusion{$fusion_name}) {
-                    $adj_fusion = $TP_fusion;
-                }
-                elsif ($ALLOW_REVERSE_FUSION && ($TP_fusion = $paralog_fusion_to_TP_fusion{$reverse_fusion_name}) ) {
-                    $adj_fusion = $TP_fusion;
-                }
-                
-                if ($adj_fusion) {
-                    # reset important vars here
-                    
-                    $using_para_fusion_flag = 1;
-                    
-                    print STDERR "-substituting PARA fusion ($adj_fusion) for TP fusion ($fusion_name)\n";
-                    
-                    $fusion_name = $adj_fusion;
-                    $fusion_name =~ /\|(\S+)--(\S+)/ or die "Error, cannot decode fusion name: $fusion_name";
-                    ($geneA, $geneB) = ($1, $2);
-                    
-                    $reverse_fusion_name = "$sample|$geneB--$geneA";
-                }
-            } 
-        }
-        
-        
-        my ($accuracy_token, $accuracy_explanation);
-
-        ############################
-        ## Check for already seen TP
-        
-        if ($seen_progTP{"$prog_name,$fusion_name"}) {
-            $accuracy_token = "NA-TP";
-            $accuracy_explanation = "already scored $fusion_name as TP";
-        }
-        
-        elsif ($ALLOW_REVERSE_FUSION && $seen_progTP{"$prog_name,$reverse_fusion_name"}) {
-            $accuracy_token = "NA-TP_rev";
-            $accuracy_explanation = "already scored $reverse_fusion_name (rev) as TP";
-        }
-
-        ############################
-        ## Check for already seen FP
-        
-        elsif ($FP_progFusions{"$prog_name,$fusion_name"}) {
-            $accuracy_token = "NA-FP";
-            $accuracy_explanation = "already scored $fusion_name as FP";
-        }
-
-        elsif ($ALLOW_REVERSE_FUSION && $FP_progFusions{"$prog_name,$reverse_fusion_name"}) {
-            $accuracy_token = "NA-FP_rev";
-            $accuracy_explanation = "already scored $reverse_fusion_name (rev) as FP";
-        }
-        
-        ###########
-        ## Check to see if we should ignore it
-        elsif (%unsure_fusions && $unsure_fusions{$fusion_name}) {
-            $accuracy_token = "NA-UNCLASS";
-            $accuracy_explanation = "not classifying $fusion_name, in unsure list";
-        }
-        elsif (%unsure_fusions && $ALLOW_REVERSE_FUSION && $unsure_fusions{$reverse_fusion_name}) {
-            $accuracy_token = "NA-UNCLASS_rev";
-            $accuracy_explanation = "not classifying $reverse_fusion_name (rev), in unsure list";
-        }
-                
-        ###############################
-        ## Check for new TP recognition
-        
-        elsif ($TP_fusions{$fusion_name}) {
-            $accuracy_token = "TP";
-            $seen_progTP{"$prog_name,$fusion_name"} = 1;
-            $accuracy_explanation = "first encounter of TP $fusion_name";
-        }
-        
-        elsif ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_fusion_name}) {
-            $accuracy_token = "TP";
-            $seen_progTP{"$prog_name,$reverse_fusion_name"} = 1;
-            $accuracy_explanation = "first encounter of TP $reverse_fusion_name (rev)";
-        }
-        
-        else {
-            # haven't seen it yet and not a known TP
-            # map to overlapping genes on the genome and consider equivalent.
-            
-                    
-            my @overlapping_genesA = &find_overlapping_genes($geneA, \%interval_trees, \%gene_id_to_coords);
-            
-            my @overlapping_genesB = &find_overlapping_genes($geneB, \%interval_trees, \%gene_id_to_coords);
-            
-            if (@overlapping_genesA && @overlapping_genesB) {
-                ## explore combinations between A and B pairs
-                
-                my %newly_found_TPs;
-                my %existing_TPs;
-                my %existing_FPs;
-                my %found_unsure;
-                
-                
-                foreach my $gA (@overlapping_genesA) {
-                    foreach my $gB (@overlapping_genesB) {
-                        
-                        my $candidate_fusion = "$sample|" . join("--", $gA, $gB);
-                        my $reverse_candidate_fusion = "$sample|" . join("--", $gB, $gA);
-                        
-                        ###########################
-                        # check for already seen TP
-                        if ($seen_progTP{"$prog_name,$candidate_fusion"}) {
-                            $existing_TPs{$candidate_fusion} = 1;
-                        }
-
-                        elsif ($ALLOW_REVERSE_FUSION && $seen_progTP{"$prog_name,$reverse_candidate_fusion"}) {
-                            $existing_TPs{$reverse_candidate_fusion} = 1;
-                        }
-                        
-                        ####################
-                        ## Check for new TPs
-                        elsif ($TP_fusions{$candidate_fusion}) { 
-                            $newly_found_TPs{$candidate_fusion} = 1;
-                        }
-
-                        elsif ($ALLOW_REVERSE_FUSION && $TP_fusions{$reverse_candidate_fusion}) {
-                            $newly_found_TPs{$reverse_candidate_fusion} = 1;
-                        }
-                        
-                        #####################
-                        ## Check for unsure status
-                        elsif ($unsure_fusions{$candidate_fusion}) {
-                            $found_unsure{$candidate_fusion} = 1;
-                        }
-                        elsif ($ALLOW_REVERSE_FUSION && $unsure_fusions{$reverse_candidate_fusion}) {
-                            $found_unsure{$reverse_candidate_fusion} = 1;
-                        }
-                        
-                        #############################
-                        ## Check for already seen FPs
-                        
-                        elsif ($FP_progFusions{"$prog_name,$candidate_fusion"}) {
-                            $existing_FPs{$candidate_fusion} = 1;
-                        }
-                        
-                        elsif ($ALLOW_REVERSE_FUSION && $FP_progFusions{"$prog_name,$reverse_candidate_fusion"}) {
-                            $existing_FPs{$reverse_candidate_fusion} = 1;
-                        }
-                    }
-                }
-                
-                if (my @new_TPs = keys %newly_found_TPs) {
-                    $accuracy_token = "TP";
-                    foreach my $f (@new_TPs) {
-                        $seen_progTP{"$prog_name,$f"} = 1;
-                    }
-                    $accuracy_explanation = "chr mapping to first encounter of TP " . join(",", @new_TPs);
-                }
-                elsif (my @existing_TPs = keys %existing_TPs) {
-                    $accuracy_token = "NA-TP";
-                    $accuracy_explanation = "chr mapping to already scored TP " . join(",", @existing_TPs);
-                }
-                elsif (my @found_unsures = keys %found_unsure) {
-                    $accuracy_token = "NA-UNCLASS";
-                    $accuracy_explanation = "chr mapping to unsure entry " . join(",", @found_unsures);
-                }
-                elsif (my @existing_FPs = keys %existing_FPs) {
-                    $accuracy_token = "NA-FP";
-                    $accuracy_explanation = "chr mapping to already scored FP " . join(",", @existing_FPs);
-                }
+        foreach my $ele (split(/,/, $mapped_A_list)) {
+            if ($ele && ! grep { $_ eq $ele } @partnersA) {
+                push (@partnersA, $ele);
             }
-            
-            else {
-                ## no overlapping genes found
-                my @missing_genes;
-                unless (@overlapping_genesA) {
-                    push (@missing_genes, $geneA);
-                }
-                unless (@overlapping_genesB) {
-                    push (@missing_genes, $geneB);
-                }
-                $accuracy_token = "NA-unknown";
-                $accuracy_explanation = "cannot find record of " . join(",", @missing_genes);
+        }
+        foreach my $ele (split(/,/, $mapped_B_list)) {
+            if ($ele && ! grep { $_ eq $ele } @partnersB) {
+                push (@partnersB, $ele);
             }
         }
         
-        unless ($accuracy_token) {
-            # must be a FP
-            $accuracy_token = "FP";
-            $accuracy_explanation = "first encounter of FP fusion $fusion_name";
-            $FP_progFusions{"$prog_name,$fusion_name"} = 1;
-        }
+        my ($pred_result, $explanation) = &classify_fusion_prediction($sample, $prog_name, \@partnersA, \@partnersB);
         
         
-        if ($using_para_fusion_flag) {
-            $accuracy_explanation .= " (using_para_fusion)";
-        }
         
-        $accuracy_explanation =~ s/\s/_/g;
-        
-        print join("\t", $accuracy_token, $prog_name, $sample, $core_fusion_name, $J, $S, $accuracy_explanation) . "\n";
     }
-    
 
+    
     ## Report false-negatives (known fusions not predicted)
     
     foreach my $prog_name (keys %prog_names) {
@@ -340,79 +146,111 @@ main : {
     
 }
 
+
 ####
-sub build_interval_trees {
-    my ($gene_spans_files, $gene_id_to_coords_href) = @_;
+sub classify_fusion_prediction {
+    my ($sample, $prog_name, $partnerA_aref, $partnerB_aref) = @_;
+   
+    my @fusion_candidates;
 
-    my %interval_trees;
-    
-    my @gene_span_files = split(/,/, $gene_spans_files);
-    
-    foreach my $gene_spans_file (@gene_span_files) {
-    
+    my $primary_fusion_name;
 
-        open (my $fh, $gene_spans_file) or die "Error, cannot open file $gene_spans_file";
-        while (<$fh>) {
-            chomp;
-            my ($gene_id, $chr, $lend, $rend, $orient, $gene_symbol) = split(/\t/);
+    # build candidate fusion list
+    foreach my $partnerA (@$partnerA_aref) {
+        foreach my $partnerB (@$partnerB_aref) {
             
-            $gene_symbol = uc $gene_symbol;
-            $gene_id = uc $gene_id;
-            
-            if ($chr !~ /chr/) {
-                $chr = "chr$chr";
+            my $fusion_candidate = &encode_fusion($sample, $partnerA, $partnerB);
+
+            #note, the primary A--B will show up first in the list.
+            unless ($primary_fusion_name) {
+                $primary_fusion_name = $fusion_candidate;
             }
             
-            my $itree = $interval_trees{$chr};
-            unless (ref $itree) {
-                $itree = $interval_trees{$chr} = Set::IntervalTree->new;
-            }
-            
-            
-            
-            unless (exists $gene_id_to_coords_href->{$gene_symbol}) {
-                
-                $itree->insert($gene_symbol, $lend, $rend);
-                
-                $gene_id_to_coords_href->{$gene_symbol} = { chr => $chr,
-                                                            lend => $lend,
-                                                            rend => $rend };
-                
-                
-            }
-            
-            
-            unless (exists $gene_id_to_coords_href->{$gene_id} ) {
-                
-                $itree->insert($gene_id, $lend, $rend);
-                
-                $gene_id_to_coords_href->{$gene_id} = { chr => $chr,
-                                                        lend => $lend,
-                                                        rend => $rend };
-            }
-            
-            
-            my $core_gene_id = $gene_id;
-            $core_gene_id =~ s/\.\d+$//;
-            if ($core_gene_id ne $gene_id) {
-                
-                unless (exists $gene_id_to_coords_href->{$core_gene_id}) {
-                    
-                    $itree->insert($core_gene_id, $lend, $rend);
-                    
-                    $gene_id_to_coords_href->{$core_gene_id} = { chr => $chr,
-                                                                 lend => $lend,
-                                                                 rend => $rend };
-                }
+            push (@fusion_candidates, $fusion_candidate);
+
+            if ($ALLOW_REVERSE_FUSION) {
+                my $fusion_candidate = &encode_fusion($sample, $partnerB, $partnerA);
+                push (@fusion_candidates, $fusion_candidate);
             }
             
         }
-        close $fh;
     }
-
     
-    return(%interval_trees);
+
+    my ($accuracy_token, $accuracy_explanation); 
+
+    foreach my $fusion_name (@fusion_candidates) {
+
+        my $using_para_proxy = undef;
+        
+        if ($ALLOW_PARALOGS && exists $paralog_fusion_to_TP_fusion{$fusion_name}) {
+            
+            $using_para_proxy = $fusion_name;
+            $fusion_name = $paralog_fusion_to_TP_fusion{$fusion_name};
+            
+        }
+        
+        my $prog_fusion = "$prog_name,$fusion_name";
+        
+        ############################
+        ## Check for already seen TP
+        
+        if ($seen_progTP{$prog_fusion}) {
+            $accuracy_token = "NA-TP";
+            $accuracy_explanation = "already scored $fusion_name as TP";
+        }
+
+        ############################
+        ## Check for already seen FP
+        
+        elsif ($FP_progFusions{"$prog_name,$fusion_name"}) {
+            $accuracy_token = "NA-FP";
+            $accuracy_explanation = "already scored $fusion_name as FP";
+        }
+        
+        ###########
+        ## Check to see if we should ignore it
+        elsif (%unsure_fusions && $unsure_fusions{$fusion_name}) {
+            $accuracy_token = "NA-UNCLASS";
+            $accuracy_explanation = "not classifying $fusion_name, in unsure list";
+        }
+                
+        ###############################
+        ## Check for new TP recognition
+        
+        elsif ($TP_fusions{$fusion_name}) {
+            $accuracy_token = "TP";
+            $seen_progTP{"$prog_name,$fusion_name"} = 1;
+            $accuracy_explanation = "first encounter of TP $fusion_name";
+        }
+        
+
+        if ($accuracy_token) { 
+            if ($using_para_proxy) {
+                $accuracy_explanation .= " (para of $using_para_proxy)";
+            }
+            last; 
+        } 
+    }
+    
+    if ($accuracy_token) {
+        if ($accuracy_explanation !~ /$primary_fusion_name/) {
+            # include the primary name to faciliate further study of the comment.
+            $accuracy_explanation .= " ($primary_fusion_name)";
+        }
+    }
+     
+    unless ($accuracy_token) {
+        # must be a FP
+        $accuracy_token = "FP";
+        $accuracy_explanation = "first encounter of FP fusion $primary_fusion_name";
+        $FP_progFusions{"$prog_name,$primary_fusion_name"} = 1;
+    }
+    
+    return($accuracy_token, $accuracy_explanation);
+
 }
+
 
 
 ####
@@ -443,45 +281,6 @@ sub parse_fusion_listing {
 
 
 ####
-sub find_overlapping_genes {
-    my ($genes, $interval_trees_href, $gene_id_to_coords_href) = @_;
-   
-
-    my @overlapping_genes;
-    # allow for comma-separated lists
-    foreach my $gene (split(/,/, $genes)) {
-        
-        $gene = uc $gene;
-        
-        my $gene_info_struct = $gene_id_to_coords_href->{$gene}; # try lowercase version of gene id just in case.
-        
-        unless ($gene_info_struct) {
-            print STDERR "WARNING - not finding a record of gene $gene\n";
-            next;
-        }
-        
-        my $chr = $gene_info_struct->{chr};
-        my $lend = $gene_info_struct->{lend};
-        my $rend = $gene_info_struct->{rend};
-        
-        my $itree = $interval_trees_href->{$chr} or die "Error, no interval tree stored for chr [$chr]";
-        
-        my $overlaps_aref = $itree->fetch($lend, $rend);
-        
-        if ($overlaps_aref && @$overlaps_aref) {
-            
-            unless ( grep { $_ eq $gene } @$overlaps_aref) {
-                die "Error, found overlapping genes for $gene, but doesn't include $gene : { @$overlaps_aref } ";
-            }
-            push (@overlapping_genes, @$overlaps_aref);
-        }
-    }
-
-    return(@overlapping_genes);
-
-}
-
-####
 sub parse_paralogs_integrate_parafusions {
     my ($orig_fusions_href, $paralogs_file) = @_;
     
@@ -499,7 +298,6 @@ sub parse_paralogs_integrate_parafusions {
         }
         close $fh;
     }
-
 
     
     my %paralog_fusion_to_orig_fusion;
@@ -530,6 +328,28 @@ sub parse_paralogs_integrate_parafusions {
     }
     
     return(%paralog_fusion_to_orig_fusion);
+
+}
+
+
+####
+sub encode_fusion {
+    my ($sample, $geneA, $geneB) = @_;
+
+    my $fusion_name = "$sample|$geneA--$geneB";
+
+    return($fusion_name);
+}
+
+####
+sub decode_fusion {
+    my ($fusion_name) = @_;
+
+    $fusion_name =~ /^([^\|]+)\|(\S+)--(\S+)$/ or die "Error, cannot decode fusion: $fusion_name";
+
+    my ($sample, $geneA, $geneB) = ($1, $2, $3);
+
+    return($sample, $geneA, $geneB);
 
 }
 
