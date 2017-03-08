@@ -12,20 +12,22 @@ while(<$fh>) {
     my $line = $_;
     my @x = split(/\t/);
     my $fusion_name = $x[2];
-    my $annot = $x[5];
+    my $annot = $x[7];
     
     if ($fusion_name =~ /HLA/ 
         ||
-        $annot =~ /chrM:/
-        ||
-        $annot =~ /NEIGHBOR/
-        ||
-        $annot =~ /BLAST/
-        ) {
+        ($annot && 
+         ($annot =~ /chrM:/
+          ||
+          $annot =~ /NEIGHBOR/
+          ||
+          $annot =~ /BLAST/
+         )
+        )
+        ) 
+    {
         next;
     }
-
-    
     print $line;
 }
 
