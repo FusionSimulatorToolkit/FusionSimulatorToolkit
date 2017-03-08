@@ -22,6 +22,8 @@ my %prog_type_to_file_parser = (
     'FusionInspector' => 'FusionInspector_parser',
     'InFusion' => 'InFusion_parser', 
     'JAFFA-Assembly' => 'JAFFA_parser',
+    'JAFFA-Direct' => 'JAFFA_parser',
+    'JAFFA-Hybrid' => 'JAFFA_parser',
     'MapSplice' => 'MapSplice_parser',
     'nFuse' => 'NFuse_parser',
     'PRADA' => 'PRADA_parser',
@@ -40,6 +42,10 @@ foreach my $module (values %prog_type_to_file_parser) {
 
 main: {
 
+
+    # print header
+    print join("\t", "sample", "prog", "fusion", "J", "S") . "\n";
+    
     open(my $fh, $fusion_result_file_listing) or die "Error, cannot open file $fusion_result_file_listing";
     while (<$fh>) {
         chomp;
@@ -55,6 +61,10 @@ main: {
         no strict 'refs';
         my @fusions = &$parser_function($result_file);
 
+        &add_sum_fusions(\@fusions);
+        
+        @fusions = reverse sort { $a->{sum_frags} <=> $b->{sum_frags} } @fusions;
+        
         foreach my $fusion (@fusions) {
 
             my $fusion_name = join("--", $fusion->{geneA}, $fusion->{geneB});
@@ -73,4 +83,14 @@ main: {
     exit(0);
 }
 
+####
+sub add_sum_fusions {
+    my ($fusions_aref) = @_;
 
+    foreach my $fusion (@$fusions_aref) {
+
+        $fusion->{sum_frags} = $fusion->{junc_reads} + $fusion->{span_reads};
+
+    }
+
+}

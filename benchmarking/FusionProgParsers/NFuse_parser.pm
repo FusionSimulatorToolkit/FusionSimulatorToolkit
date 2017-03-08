@@ -157,6 +157,7 @@ sub parse_fusion_result_file {
     my @fusions;
 
     open (my $fh, $nFUSE_out_file) or die "Error, cannot open file $nFUSE_out_file";
+    my $header = <$fh>;
     while (<$fh>) {
         chomp;
         my @x = split(/\t/);
