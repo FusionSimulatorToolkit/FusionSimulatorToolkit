@@ -85,7 +85,7 @@ sub parse_file {
     open (my $fh, $fusions_file) or die $!;
     while (<$fh>) {
         chomp;
-        my ($pred_type, $progname, $sample_name, $fusion, $J, $S, @rest) = split(/\t/);
+        my ($pred_type, $sample_name, $progname, $fusion, $J, $S, @rest) = split(/\t/);
         
         unless ($pred_type =~ /^(TP|FP|FN)$/) { next; }
         

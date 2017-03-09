@@ -115,6 +115,11 @@ sub parse_fusion_predictions {
     my %method_to_preds;
 
     open (my $fh, $preds_file) or die $!;
+    my $header = <$fh>;
+    unless ($header =~ /^pred_result\tsample/) {
+        die "Error, not finding expected header format for $preds_file";
+    }
+    
     while (<$fh>) {
         my $line = $_;
         chomp;
@@ -125,8 +130,8 @@ sub parse_fusion_predictions {
         unless ($pred_class eq "TP") { next; }
         
         my $fusion_name = $x[3];
-        my $sample = $x[2];
-        my $method = $x[1];
+        my $sample = $x[1];
+        my $method = $x[2];
         
         if ($line =~ /chr_mapping_to_first_encounter_of_TP_\S+\|(\S+--\S+)/) {
             $fusion_name = $1;
