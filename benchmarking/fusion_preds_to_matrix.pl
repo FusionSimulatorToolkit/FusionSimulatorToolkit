@@ -14,6 +14,10 @@ main: {
     my %fusion_preds;
 
     open(my $fh, $preds_file) or die $!;
+    my $header = <$fh>;
+    unless ($header =~ /^sample\tprog/) {
+        die "Error, missing expected header format for $preds_file";
+    }
     while(<$fh>) {
         chomp;
         my @x = split(/\t/);

@@ -94,7 +94,9 @@ main : {
     
     my %prog_names;
     # print header
-    print join("\t", "pred_result", "sample", "prog", "fusion", "J", "S", "mapped_gencode_A_gene_list", "mapped_gencode_B_gene_list", "explanation") . "\n";
+    print join("\t", "pred_result", "sample", "prog", "fusion", "J", "S", 
+               "mapped_gencode_A_gene_list", "mapped_gencode_B_gene_list", 
+               "explanation", "selected_fusion") . "\n";
     
     open (my $fh, $fusion_preds_file) or die "Error, cannot open file $fusion_preds_file";
     my $header = <$fh>;
@@ -127,9 +129,13 @@ main : {
             }
         }
         
-        my ($pred_result, $explanation) = &classify_fusion_prediction($sample, $prog_name, \@partnersA, \@partnersB);
+        my ($pred_result, $explanation, $fusion_selected) = &classify_fusion_prediction($sample, $prog_name, \@partnersA, \@partnersB);
 
-        print join("\t", $pred_result, $sample, $prog_name, $fusion_name, $J, $S, $mapped_A_list, $mapped_B_list, $explanation) . "\n";
+        unless ($fusion_selected) {
+            $fusion_selected = ".";
+        }
+        
+        print join("\t", $pred_result, $sample, $prog_name, $fusion_name, $J, $S, $mapped_A_list, $mapped_B_list, $explanation, $fusion_selected) . "\n";
                 
     }
 
@@ -143,7 +149,7 @@ main : {
                 my ($sample_name, $geneA, $geneB) = &decode_fusion($fusion_name);
                 my $core_fusion_name = join("--", $geneA, $geneB);
                 
-                print join("\t", "FN", $sample_name, $prog_name, $core_fusion_name, 0, 0, '.', '.', 'prediction_lacking') . "\n";
+                print join("\t", "FN", $sample_name, $prog_name, $core_fusion_name, 0, 0, '.', '.', 'prediction_lacking', '.') . "\n";
                 
             }
         }
@@ -185,7 +191,7 @@ sub classify_fusion_prediction {
     }
     
 
-    my ($accuracy_token, $accuracy_explanation); 
+    my ($accuracy_token, $accuracy_explanation, $fusion_selected); 
 
     foreach my $fusion_name (@fusion_candidates) {
 
@@ -235,6 +241,7 @@ sub classify_fusion_prediction {
             $accuracy_token = "TP";
             $seen_progTP{$prog_fusion} = 1;
             $accuracy_explanation = "first encounter of TP $prog_fusion";
+            $fusion_selected = $fusion_name;
         }
         
 
@@ -261,8 +268,8 @@ sub classify_fusion_prediction {
         $FP_progFusions{$prog_fusion} = 1;
     }
     
-    return($accuracy_token, $accuracy_explanation);
-
+    return($accuracy_token, $accuracy_explanation, $fusion_selected);
+    
 }
 
 
