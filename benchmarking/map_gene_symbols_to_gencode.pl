@@ -176,7 +176,7 @@ sub __map_genes {
     
     unless (ref $gene_structs_aref) {
         unless ($reported_missing_gene{$gene_id}) {
-            print STDERR "ERROR, no gene stored for: $gene_id\n";
+            print STDERR "-warning, no gene stored for identifier: [$gene_id]\n";
             $reported_missing_gene{$gene_id} = 1;
         }
         return ();
