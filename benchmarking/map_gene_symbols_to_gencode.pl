@@ -62,7 +62,8 @@ main: {
         my ($geneA, $geneB) = split(/--/, $fusion);
         
         my $fusion_name = "$geneA--$geneB";
-        
+
+        #print STDERR "\t** fusion: [$fusion]  \n";
         my $gencode_A_genes = &get_gencode_overlapping_genes($geneA);
         my $gencode_B_genes = &get_gencode_overlapping_genes($geneB);
         
