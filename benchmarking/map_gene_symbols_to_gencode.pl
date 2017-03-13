@@ -8,13 +8,11 @@ use Data::Dumper;
 use Set::IntervalTree;
 
 
-my $usage = "\n\n\tusage: $0 preds.collected genes.coords genes.aliases truth_gene_list.txt\n\n";
+my $usage = "\n\n\tusage: $0 preds.collected genes.coords genes.aliases\n\n";
 
 my $preds_collected_file = $ARGV[0] or die $usage;
 my $genes_coords_file = $ARGV[1] or die $usage;
 my $genes_aliases_file = $ARGV[2] or die $usage;
-my $truth_gene_list_file = $ARGV[3] or die $usage;
-
 
 ###############################################################################
 ### a few handy globals ;-)
@@ -47,7 +45,6 @@ main: {
     
     &init_aliases($genes_aliases_file, \%GENE_ALIASES);
 
-    &init_truth_list($truth_gene_list_file, \%TRUTH_FUSION_PARTNERS); 
     
     open (my $fh, $preds_collected_file) or die "Error, cannot read file $preds_collected_file";
     my $header = <$fh>;
@@ -65,7 +62,8 @@ main: {
         my ($geneA, $geneB) = split(/--/, $fusion);
         
         my $fusion_name = "$geneA--$geneB";
-        
+
+        #print STDERR "\t** fusion: [$fusion]  \n";
         my $gencode_A_genes = &get_gencode_overlapping_genes($geneA);
         my $gencode_B_genes = &get_gencode_overlapping_genes($geneB);
         
@@ -162,16 +160,28 @@ sub find_overlapping_gencode_genes {
 }
 
 
+my %reported_missing_gene;
+
 sub __map_genes {
     my ($gene_id) = @_;
 
     my $gene_structs_aref = $GENE_ID_TO_GENE_STRUCTS{$gene_id} || $GENE_ID_TO_GENE_STRUCTS{ lc $gene_id};
+
+    
+    #unless ($gene_structs_aref) {
+    #    # try again, removing any trailing version number
+    #    $gene_id =~ s/\.\d+$//;
+    #    $gene_structs_aref = $GENE_ID_TO_GENE_STRUCTS{$gene_id} || $GENE_ID_TO_GENE_STRUCTS{ lc $gene_id};
+    #}
     
     unless (ref $gene_structs_aref) {
-        print STDERR "ERROR, no gene stored for: $gene_id\n";
+        unless ($reported_missing_gene{$gene_id}) {
+            print STDERR "-warning, no gene stored for identifier: [$gene_id]\n";
+            $reported_missing_gene{$gene_id} = 1;
+        }
         return ();
     }
-
+    
 
     my %overlapping_genes;
     
@@ -183,7 +193,6 @@ sub __map_genes {
 
         my $search_dist = $rend - $lend + 1;
         if ($search_dist > $MAX_GENE_RANGE_SEARCH) {
-            print STDERR "Error, search distance: $search_dist is too large.\n";
             next;
         }
 
@@ -331,29 +340,3 @@ sub init_aliases {
 
     return;
 }
-
-####
-sub init_truth_list {
-    my ($truth_gene_list_file, $truth_fusion_partners_href) = @_;
-
-    open(my $fh, $truth_gene_list_file) or die "Error, cannot open file: $truth_gene_list_file";
-    while (<$fh>) {
-        chomp;
-        my $fusion_name = $_;
-        $fusion_name =~ s/\s//;
-        my ($geneA, $geneB) = split(/--/, $fusion_name);
-        unless ($geneA && $geneB) {
-            croak "Error, couldn't parse fusion partners from $fusion_name";
-        }
-
-        $truth_fusion_partners_href->{$geneA} = 1;
-        $truth_fusion_partners_href->{$geneB} = 1;
-    }
-
-    close $fh;
-
-}
-
-
-        
-        

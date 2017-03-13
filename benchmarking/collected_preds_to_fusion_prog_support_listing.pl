@@ -3,18 +3,36 @@
 use strict;
 use warnings;
 
-my $usage = "\n\n\tusage: $0 fusion_preds.collected\n\n";
+my $usage = "\n\n\tusage: $0 fusion_preds.collected progs_to_consider.txt\n\n";
 
 my $preds_file = $ARGV[0] or die $usage;
+my $progs_to_consider_file = $ARGV[1] or die $usage;
 
 main: {
+
+    my %progs_to_consider;
+    {
+        open(my $fh, $progs_to_consider_file) or die "Error, cannot open file $progs_to_consider_file";
+        while (<$fh>) {
+            s/^\s+|\s+$//g;
+            my $prog = $_;
+            $progs_to_consider{$prog} = 1;
+        }
+        close $fh;
+    }
     
     my %fusion_to_prog;
 
     open (my $fh, $preds_file) or die "Error, cannot open file $preds_file";
+    my $header = <$fh>;
+    unless ($header =~ /^sample\tprog/) {
+        die "Error, missing expected header in $preds_file";
+    }
     while (<$fh>) {
         chomp;
         my ($sample_name, $prog, $fusion_name, $junc_support, $frag_support) = split(/\t/);
+     
+        unless ($progs_to_consider{$prog}) { next; }
         
         $fusion_name = "$sample_name|$fusion_name";
         

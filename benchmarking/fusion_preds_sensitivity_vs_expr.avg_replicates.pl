@@ -49,7 +49,9 @@ main: {
 
             my $bin = $fusion_to_expr_bin{$fusion_pred};
             unless (defined $bin) {
-                print STDERR "Error, fusion \"$fusion_pred\" not assigned to an expression bin.\n";
+                print STDERR Dumper(\%fusion_to_expr_bin);
+                print STDERR "Error, fusion [$fusion_pred] not assigned to an expression bin.\n";
+                die;
                 next;
             }
             
@@ -115,6 +117,11 @@ sub parse_fusion_predictions {
     my %method_to_preds;
 
     open (my $fh, $preds_file) or die $!;
+    my $header = <$fh>;
+    unless ($header =~ /^pred_result\tsample/) {
+        die "Error, not finding expected header format for $preds_file";
+    }
+    
     while (<$fh>) {
         my $line = $_;
         chomp;
@@ -125,18 +132,25 @@ sub parse_fusion_predictions {
         unless ($pred_class eq "TP") { next; }
         
         my $fusion_name = $x[3];
-        my $sample = $x[2];
-        my $method = $x[1];
+        my $sample = $x[1];
+        my $method = $x[2];
         
-        if ($line =~ /chr_mapping_to_first_encounter_of_TP_\S+\|(\S+--\S+)/) {
-            $fusion_name = $1;
+        my $effective_fusion_name = pop @x;
+        if ($effective_fusion_name ne '.') {
+            $fusion_name = $effective_fusion_name;
+            my ($sample, $gene_pair) = split(/\|/, $fusion_name);
+            my ($geneA, $geneB) = split(/--/, $gene_pair);
+            # fusions being evaluated regardless of order of pair
+            $fusion_name = $sample . '|' . join("--", sort ($geneA, $geneB));
         }
-        
-        $fusion_name = uc $fusion_name;
-        my ($geneA, $geneB) = sort split(/--/, $fusion_name);
-        $fusion_name = "$geneA--$geneB";
-        
-        $fusion_name = "$sample|$fusion_name";
+        else {
+            
+            $fusion_name = uc $fusion_name;
+            # fusions being evaluated regardless of order of pair
+            my ($geneA, $geneB) = sort split(/--/, $fusion_name);
+            $fusion_name = "$geneA--$geneB";
+            $fusion_name = "$sample|$fusion_name";
+        }
         
         $method_to_preds{$method}->{$fusion_name} = 1;
     }
@@ -153,7 +167,7 @@ sub parse_fusions_into_expr_bins {
 
     my %fusion_to_TPM_bin;
 
-    open (my $fh, $fusion_tpm_file) or die $!;
+    open (my $fh, $fusion_tpm_file) or die "Error, cannot open file $fusion_tpm_file";
     while (<$fh>) {
         chomp;
         my ($sample, $fusion, $TPM) = split(/\t/);

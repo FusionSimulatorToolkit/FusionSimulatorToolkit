@@ -83,11 +83,25 @@ sub parse_file {
     my %seen;
     
     open (my $fh, $fusions_file) or die $!;
+    
+    my $header = <$fh>;
+    unless ($header =~ /^pred_result/) {
+        die "Error, not reading expected header format for $fusions_file";
+    }
     while (<$fh>) {
         chomp;
-        my ($pred_type, $progname, $sample_name, $fusion, $J, $S, @rest) = split(/\t/);
+        my @x = split(/\t/);
+        unless (scalar @x == 10) {
+            die "Error, did not parse 10 fields from row: $_";
+        }
+        my ($pred_type, $sample_name, $progname, $fusion, $J, $S, 
+            $mapped_gencode_A, $mapped_gencode_B, $explanation, $selected_fusion) = @x;
         
         unless ($pred_type =~ /^(TP|FP|FN)$/) { next; }
+                
+        if ($selected_fusion ne '.') {
+            $fusion = $selected_fusion;
+        }
         
         my $fusion_token = join("::", $progname, $sample_name, $fusion);
         

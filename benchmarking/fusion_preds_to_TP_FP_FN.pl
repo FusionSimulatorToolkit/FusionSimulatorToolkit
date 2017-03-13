@@ -65,6 +65,10 @@ unless ($fusion_preds_file && $truth_fusions_file) {
 
 }
 
+if (@ARGV) {
+    die "Error, don't understand options: @ARGV";
+}
+
 if ($paralogs_file) {
     $ALLOW_PARALOGS = 1;
 }
@@ -90,7 +94,9 @@ main : {
     
     my %prog_names;
     # print header
-    print join("\t", "pred_result", "sample", "prog", "fusion", "J", "S", "mapped_gencode_A_gene_list", "mapped_gencode_B_gene_list", "explanation") . "\n";
+    print join("\t", "pred_result", "sample", "prog", "fusion", "J", "S", 
+               "mapped_gencode_A_gene_list", "mapped_gencode_B_gene_list", 
+               "explanation", "selected_fusion") . "\n";
     
     open (my $fh, $fusion_preds_file) or die "Error, cannot open file $fusion_preds_file";
     my $header = <$fh>;
@@ -123,10 +129,14 @@ main : {
             }
         }
         
-        my ($pred_result, $explanation) = &classify_fusion_prediction($sample, $prog_name, \@partnersA, \@partnersB);
+        my ($pred_result, $explanation, $fusion_selected) = &classify_fusion_prediction($sample, $prog_name, \@partnersA, \@partnersB);
+
+        unless ($fusion_selected) {
+            $fusion_selected = ".";
+        }
         
-        
-        
+        print join("\t", $pred_result, $sample, $prog_name, $fusion_name, $J, $S, $mapped_A_list, $mapped_B_list, $explanation, $fusion_selected) . "\n";
+                
     }
 
     
@@ -135,8 +145,12 @@ main : {
     foreach my $prog_name (keys %prog_names) {
         foreach my $fusion_name (keys %TP_fusions) {
             if (! $seen_progTP{"$prog_name,$fusion_name"}) {
-                my ($sample_name, $core_fusion_name) = split(/\|/, $fusion_name);
-                print join("\t", "FN", $prog_name, $sample_name, $core_fusion_name, 0, 0, "lacking_this_fusion_prediction") . "\n";
+
+                my ($sample_name, $geneA, $geneB) = &decode_fusion($fusion_name);
+                my $core_fusion_name = join("--", $geneA, $geneB);
+                
+                print join("\t", "FN", $sample_name, $prog_name, $core_fusion_name, 0, 0, '.', '.', 'prediction_lacking', '.') . "\n";
+                
             }
         }
     }
@@ -177,17 +191,22 @@ sub classify_fusion_prediction {
     }
     
 
-    my ($accuracy_token, $accuracy_explanation); 
+    my ($accuracy_token, $accuracy_explanation, $fusion_selected); 
 
     foreach my $fusion_name (@fusion_candidates) {
 
         my $using_para_proxy = undef;
         
         if ($ALLOW_PARALOGS && exists $paralog_fusion_to_TP_fusion{$fusion_name}) {
-            
-            $using_para_proxy = $fusion_name;
-            $fusion_name = $paralog_fusion_to_TP_fusion{$fusion_name};
-            
+
+            my $para_fusion_name = $paralog_fusion_to_TP_fusion{$fusion_name};
+
+            if ($fusion_name ne $para_fusion_name) {
+                $using_para_proxy = $fusion_name;
+                # now set as fusion name to use in analysis below
+                $fusion_name = $para_fusion_name;
+            }
+                        
         }
         
         my $prog_fusion = "$prog_name,$fusion_name";
@@ -197,15 +216,15 @@ sub classify_fusion_prediction {
         
         if ($seen_progTP{$prog_fusion}) {
             $accuracy_token = "NA-TP";
-            $accuracy_explanation = "already scored $fusion_name as TP";
+            $accuracy_explanation = "already scored $prog_fusion as TP";
         }
 
         ############################
         ## Check for already seen FP
         
-        elsif ($FP_progFusions{"$prog_name,$fusion_name"}) {
+        elsif ($FP_progFusions{$prog_fusion}) {
             $accuracy_token = "NA-FP";
-            $accuracy_explanation = "already scored $fusion_name as FP";
+            $accuracy_explanation = "already scored $prog_fusion as FP";
         }
         
         ###########
@@ -220,8 +239,9 @@ sub classify_fusion_prediction {
         
         elsif ($TP_fusions{$fusion_name}) {
             $accuracy_token = "TP";
-            $seen_progTP{"$prog_name,$fusion_name"} = 1;
-            $accuracy_explanation = "first encounter of TP $fusion_name";
+            $seen_progTP{$prog_fusion} = 1;
+            $accuracy_explanation = "first encounter of TP $prog_fusion";
+            $fusion_selected = $fusion_name;
         }
         
 
@@ -243,12 +263,13 @@ sub classify_fusion_prediction {
     unless ($accuracy_token) {
         # must be a FP
         $accuracy_token = "FP";
-        $accuracy_explanation = "first encounter of FP fusion $primary_fusion_name";
-        $FP_progFusions{"$prog_name,$primary_fusion_name"} = 1;
+        my $prog_fusion = "$prog_name,$primary_fusion_name";
+        $accuracy_explanation = "first encounter of FP fusion $prog_fusion";
+        $FP_progFusions{$prog_fusion} = 1;
     }
     
-    return($accuracy_token, $accuracy_explanation);
-
+    return($accuracy_token, $accuracy_explanation, $fusion_selected);
+    
 }
 
 
