@@ -49,5 +49,8 @@ for (progname in prognames) {
     text(before_FP, before_TP, labels=progname, col=colors[i], cex=0.6, pos=4)
 }
 
+merged_dat_filename = paste0(after_dat_filename, ".before_vs_after.dat")
+write.table(merged_df, file=merged_dat_filename, quote=F, sep="\t")
+
 dev.off()
 
