@@ -19,8 +19,8 @@ sub parse_fusion_result_file {
         7       dw_strand
         8       dw_Genome_pos
         9       dw_loc
-        10      Span_reads_num
-        11      Junc_reads_num
+        10      Span_reads_num     # S
+        11      Junc_reads_num     # J
         12      Fusion_Type
         13      down_fusion_part_frame-shift_or_not
 

@@ -5,6 +5,41 @@ use warnings;
 use Carp;
 
 
+=STARFusion_format
+
+0       #FusionName
+1       JunctionReadCount
+2       SpanningFragCount
+3       SpliceType
+4       LeftGene
+5       LeftBreakpoint
+6       RightGene
+7       RightBreakpoint
+8       LargeAnchorSupport
+9       LeftBreakDinuc
+10      LeftBreakEntropy
+11      RightBreakDinuc
+12      RightBreakEntropy
+
+0       THRA--AC090627.1
+1       76
+2       104
+3       ONLY_REF_SPLICE
+4       THRA^ENSG00000126351.8
+5       chr17:38243106:+
+6       AC090627.1^ENSG00000235300.3
+7       chr17:46371709:+
+8       YES_LDAS
+9       GT
+10      1.8892
+11      AG
+12      1.9656
+
+
+=cut
+
+
+
 sub parse_fusion_result_file {
     my ($starFusion_file) = @_;
 

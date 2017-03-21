@@ -4,6 +4,47 @@ use strict;
 use warnings;
 use Carp;
 
+
+=PRADA_format
+
+0       Gene_A
+1       Gene_B
+2       A_chr
+3       B_chr
+4       A_strand
+5       B_strand
+6       Discordant_n     # span count
+7       JSR_n
+8       perfectJSR_n
+9       Junc_n
+10      Position_Consist
+11      Junction         # extract junction count
+12      Identity
+13      Align_Len
+14      Evalue
+15      BitScore 
+
+0       TRPC4AP
+1       MRPL45
+2       20
+3       17
+4       -1
+5       1
+6       6
+7       3
+8       3
+9       2
+10      PARTIALLY
+11      TRPC4AP:20:33665849_MRPL45:17:36478009,2|TRPC4AP:20:33665849_MRPL45:17:36476502,1
+12      100.00
+13      12
+14      0.68
+15      22.9
+
+=cut
+
+
+
 sub parse_fusion_result_file {
     my ($prada_file) = @_;
 

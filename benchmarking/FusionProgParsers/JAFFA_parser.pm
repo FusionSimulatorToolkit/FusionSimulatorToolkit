@@ -7,6 +7,8 @@ use Carp;
 
 =JAFFA_format
 
+## described here: https://github.com/Oshlack/JAFFA/wiki/OutputDescription
+
 0       "sample"
 1       "fusion genes"
 2       "chrom1"
@@ -14,8 +16,8 @@ use Carp;
 4       "chrom2"
 5       "base2"
 6       "gap (kb)"
-7       "spanning pairs"
-8       "spanning reads"
+7       "spanning pairs"    # spanning: The number of read-pairs, where each read in the pair aligns entirely on either side of the breakpoint. You might see a "-" in some of these. This indicates that no spanning pairs were found, but that the contig had only a small amount of flanking sequence to align reads to. i.e. the spanning pairs results may not be indicative of the true support for the fusion event.
+8       "spanning reads"    # junction: The number of reads aligning to the breakpoint, with at least 15 bases of flanking sequence either side (by default).
 9       "inframe"
 10      "aligns"
 11      "rearrangement"

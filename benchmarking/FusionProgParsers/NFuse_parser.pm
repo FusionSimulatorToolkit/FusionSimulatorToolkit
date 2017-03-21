@@ -64,13 +64,13 @@ use Carp;
 54      repeat_proportion2
 55      repeat_proportion_max
 56      sequence
-57      span_count
+57      span_count        # spanning count
 58      span_coverage1
 59      span_coverage2
 60      span_coverage_max
 61      span_coverage_min
 62      splice_score
-63      splitreads_count
+63      splitreads_count    # junction count
 64      splitreads_min_pvalue
 65      splitreads_pos_pvalue
 66      splitreads_span_pvalue

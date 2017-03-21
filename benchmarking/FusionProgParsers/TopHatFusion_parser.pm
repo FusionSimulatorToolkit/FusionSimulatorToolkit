@@ -30,8 +30,8 @@ If you follow the the 9th column, it shows coordinates "number1:number2" where o
 4       DGKD
 5       chr2
 6       234263228
-7       147  # spanning
-8       134  # junc
+7       147  # J
+8       134  # S
 9       102
 10      953.07
 
@@ -57,8 +57,8 @@ If you follow the the 9th column, it shows coordinates "number1:number2" where o
             chrB => $x[5],
             coordB => $x[6],
 
-            span_reads => $x[7],
-            junc_reads => $x[8],
+            span_reads => $x[8],
+            junc_reads => $x[7],
 
         };
 

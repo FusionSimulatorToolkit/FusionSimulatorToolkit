@@ -14,7 +14,7 @@ use Carp;
 4       ref2
 5       break_pos2
 6       region2
-7       num_span
+7       num_span  # should be num_split
 8       num_paired
 9       genes_1
 10      genes_2
