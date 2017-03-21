@@ -116,8 +116,8 @@ sub get_gencode_overlapping_genes {
 
     my @gencode_overlapping_genes = &find_overlapping_gencode_genes($gene_id);
     
-    my $gencode_genes_text = (@gencode_overlapping_genes) ? join(",", @gencode_overlapping_genes) : ".";
-
+    my $gencode_genes_text = (@gencode_overlapping_genes) ? join(",", sort @gencode_overlapping_genes) : ".";
+    
     return($gencode_genes_text);
     
 }

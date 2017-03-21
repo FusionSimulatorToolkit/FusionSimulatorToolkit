@@ -31,15 +31,25 @@ main: {
     while (<$fh>) {
         chomp;
         my ($sample_name, $prog, $fusion_name, $junc_support, $frag_support) = split(/\t/);
-     
+
         unless ($progs_to_consider{$prog}) { next; }
-        
-        $fusion_name = "$sample_name|$fusion_name";
-        
-        $fusion_to_prog{$fusion_name}->{$prog}++;
+
+        $fusion_name = uc $fusion_name;
+
+        my ($genesA, $genesB) = split(/--/, $fusion_name);
+
+        foreach my $geneA (split(/,/, $genesA)) {
+            foreach my $geneB (split(/,/, $genesB)) {
+                
+                my $fusion_name_use = join("--", $geneA, $geneB);
+                $fusion_name = "$sample_name|$fusion_name_use";
+                
+                $fusion_to_prog{$fusion_name}->{$prog} = 1;
+            }
+        }
     }
     close $fh;
-
+    
     my @fusion_structs;
     foreach my $fusion_name (keys %fusion_to_prog) {
         my $progs_href = $fusion_to_prog{$fusion_name};
