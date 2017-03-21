@@ -9,16 +9,29 @@ if (length(args) != 1) {
 
 auc = args[1]
 
-data = read.table(auc, header=F, row.names=1)
-data = t(data)
+data = read.table(auc, header=F)
+
+
+library('data.table')
+
+colnames(data) = c('progname', 'auc')
+
+dt = data.table(data)
+
 
 
 barplot_filename = paste0(auc, ".barplot.pdf")
 pdf(barplot_filename)
 
-data = data[,rev(order(data[1,]))]
+prognames = levels(dt[,progname])
+colors = rainbow(length(prognames))
+names(colors) = prognames
 
-barplot(data, las=2)
+dt = dt[order(-auc),]
+
+ordered_prognames = dt[,progname]
+barplot(dt[,auc], names.arg=ordered_prognames, las=2, cex.axis=0.5, cex.names=0.5, col=colors[ordered_prognames])
+
 
 dev.off()
 
