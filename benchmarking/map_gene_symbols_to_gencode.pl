@@ -8,7 +8,7 @@ use Data::Dumper;
 use Set::IntervalTree;
 
 
-my $usage = "\n\n\tusage: $0 preds.collected genes.coords genes.aliases\n\n";
+my $usage = "\n\n\tusage: $0 preds.collected genes.coords.gz genes.aliases\n\n";
 
 my $preds_collected_file = $ARGV[0] or die $usage;
 my $genes_coords_file = $ARGV[1] or die $usage;
@@ -266,7 +266,11 @@ sub init_interval_trees {
     
     print STDERR "-parsing annotation gene spans\n";
 
-    open(my $fh, $gene_coords_file) or die "Error, cannot open file: $gene_coords_file";
+    unless ($gene_coords_file =~ /\.gz$/) {
+        die "Error, gene_coords file $gene_coords_file is supposed to be gzipped";
+    }
+    
+    open(my $fh, "gunzip -c $gene_coords_file | ") or die "Error, cannot open file: $gene_coords_file";
     my $header_line = <$fh>;
     unless ($header_line =~ /^gene_id/) {
         croak "Error, didn't parse header from $gene_coords_file";
