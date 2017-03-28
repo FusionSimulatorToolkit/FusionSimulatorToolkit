@@ -17,7 +17,11 @@ my %prog_type_to_file_parser = (
     'ChimeraScan' => 'ChimeraScan_parser',
     'deFuse' => 'DEFUSE_parser',
     'EricScript' => 'EricScript_parser',
+
     'FusionCatcher' => 'FusionCatcher_parser',
+    'FUSION_CATCHER_V0997b' => 'FusionCatcher_parser',
+    'FUSION_CATCHER_V0997b_KP' => 'FusionCatcher_KP_parser',
+    
     'FusionHunter' => 'FusionHunter_parser',
     'FusionInspector' => 'FusionInspector_parser',
     'InFusion' => 'InFusion_parser', 
@@ -28,7 +32,11 @@ my %prog_type_to_file_parser = (
     'nFuse' => 'NFuse_parser',
     'PRADA' => 'PRADA_parser',
     'SOAP-fuse' => 'SOAPfuse_parser',
+
     'STAR-Fusion' => 'STARFusion_parser',
+    'STAR-Fusion_GR38' => 'STARFusion_parser',
+    'STAR_FUSION_GRCh38v24' => 'STARFusion_parser',
+    
     'TopHat-Fusion' => 'TopHatFusion_parser',
     );
 

@@ -109,8 +109,13 @@ main : {
         my @x = split(/\t/);
         
         my ($sample, $prog_name, $fusion_name, $J, $S, $mapped_A_list, $mapped_B_list, @rest) = @x;
+        
+        ## ensure everything is being compared in a case-insensitive manner.
         $fusion_name = uc $fusion_name;
 
+        $mapped_A_list = uc $mapped_A_list;
+        $mapped_B_list = uc $mapped_B_list;
+        
         $prog_names{$prog_name} = 1;
         
         my ($geneA, $geneB) = split(/--/, $fusion_name);
@@ -286,8 +291,8 @@ sub parse_fusion_listing {
         my $fusion = $_;
         if ($fusion =~ /^(\S+)\|(\S+)--(\S+)$/) {
             my $sample = $1;
-            my $geneA = uc $2;
-            my $geneB = uc $3;
+            my $geneA = uc $2;  # case insensitive comparisons
+            my $geneB = uc $3;  # case insensitive comparisons
             $fusions{"$sample|$geneA--$geneB"} = 1;
         }
         else {
@@ -311,7 +316,7 @@ sub parse_paralogs_integrate_parafusions {
         while (<$fh>) {
             chomp;
             
-            my @x = split(/\s+/, uc $_);
+            my @x = split(/\s+/, uc $_);  ## case insensitive
             
             foreach my $gene (@x) {
                 $gene_to_para_list{$gene} = \@x;
