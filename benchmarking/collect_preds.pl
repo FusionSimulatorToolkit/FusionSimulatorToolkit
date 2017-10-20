@@ -21,21 +21,40 @@ my %prog_type_to_file_parser = (
     'FusionCatcher' => 'FusionCatcher_parser',
     'FUSION_CATCHER_V0997b' => 'FusionCatcher_parser',
     'FUSION_CATCHER_V0997b_KP' => 'FusionCatcher_KP_parser',
+    'FUSION_CATCHER_V0997b_RF1' => 'FusionCatcher_parser',
+    'FUSION_CATCHER_V0997b_RF1KP' => 'FusionCatcher_KP_parser',
+    'FC_V0997c' => 'FusionCatcher_parser',
+    'FC_V0997b' => 'FusionCatcher_parser',
+    'FC_V0994e' => 'FusionCatcher_parser',
+        
     
     'FusionHunter' => 'FusionHunter_parser',
+
     'FusionInspector' => 'FusionInspector_parser',
+    'starFusionGRCh37_FI' => 'FusionInspector_parser',
+    'starFusionGRCh38_FI' => 'FusionInspector_parser',
+    
+    
     'InFusion' => 'InFusion_parser', 
+
     'JAFFA-Assembly' => 'JAFFA_parser',
     'JAFFA-Direct' => 'JAFFA_parser',
     'JAFFA-Hybrid' => 'JAFFA_parser',
+
     'MapSplice' => 'MapSplice_parser',
+
     'nFuse' => 'NFuse_parser',
+
     'PRADA' => 'PRADA_parser',
+
     'SOAP-fuse' => 'SOAPfuse_parser',
 
     'STAR-Fusion' => 'STARFusion_parser',
     'STAR-Fusion_GR38' => 'STARFusion_parser',
     'STAR_FUSION_GRCh38v24' => 'STARFusion_parser',
+    'starFusionGRCh37_gencode_v19_FL4' => 'STARFusion_parser',
+    'starFusionGRCh38_gencode_v26' => 'STARFusion_parser',
+
     
     'TopHat-Fusion' => 'TopHatFusion_parser',
     );
