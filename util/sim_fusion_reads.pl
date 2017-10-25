@@ -59,7 +59,7 @@ main: {
             my $frag_start_pos = $fusion_pos -  int(rand(int($frag_length/2)));
             if ($frag_start_pos < 1) { $frag_start_pos = 1; }
 
-            my $frag_seq = substr($sequence, $frag_start_pos-1, $read_length);
+            my $frag_seq = substr($sequence, $frag_start_pos-1, $frag_length);
             # make it strand-specific RF
             
             my $right_read_seq = substr($frag_seq, 0, $read_length); # /2
