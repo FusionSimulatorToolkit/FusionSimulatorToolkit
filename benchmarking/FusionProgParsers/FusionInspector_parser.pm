@@ -59,6 +59,7 @@ sub parse_fusion_result_file {
 
     close $fh;
 
+    
     return(@fusions);
 }
 

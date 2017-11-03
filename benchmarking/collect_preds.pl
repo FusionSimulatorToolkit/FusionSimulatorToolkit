@@ -59,9 +59,13 @@ my %prog_type_to_file_parser = (
     'STAR_FUSION_v19_Oct21_17' => 'STARFusion_parser',
     'STAR_FUSION_v19_Oct21_17_bbmerge' => 'STARFusion_parser',
     'STAR_FUSION_v19_Oct21_17_bbORem' => 'STARFusion_parser',
+    'STAR_FUSION' => 'STARFusion_parser',
+
     
     'TopHat-Fusion' => 'TopHatFusion_parser',
     );
+
+
 
 foreach my $module (values %prog_type_to_file_parser) {
     my $module_path = "$fusion_prog_parser_lib_dir/$module.pm";
@@ -83,12 +87,26 @@ main: {
         my ($sample_name, $prog_name, $result_file) = split(/\t/);
 
 
-        unless (exists $prog_type_to_file_parser{$prog_name}) {
+
+        my $parser_module;
+
+        if (exists $prog_type_to_file_parser{$prog_name}) {
+            $parser_module = $prog_type_to_file_parser{$prog_name};
+        }
+        elsif ($prog_name =~ /STAR_FUSION/) {
+            if ($prog_name =~ /FI/) {
+                $parser_module = "FusionInspector_parser";
+            }
+            else {
+                $parser_module = $prog_type_to_file_parser{"STAR_FUSION"};
+            }
+        }
+        else {
             die "Error, no parser for prog [$prog_name] ";
         }
         
-        my $parser_function = $prog_type_to_file_parser{$prog_name} . "::" . "parse_fusion_result_file";
-                
+        my $parser_function = $parser_module . "::" . "parse_fusion_result_file";
+        
         no strict 'refs';
         my @fusions = &$parser_function($result_file);
 
