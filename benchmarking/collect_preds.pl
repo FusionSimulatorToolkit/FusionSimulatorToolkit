@@ -63,6 +63,9 @@ my %prog_type_to_file_parser = (
 
     
     'TopHat-Fusion' => 'TopHatFusion_parser',
+
+    'PIZZLY' => 'PIZZLY_parser',
+    
     );
 
 
