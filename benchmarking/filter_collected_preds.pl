@@ -17,11 +17,13 @@ while(<$fh>) {
     if ($fusion_name =~ /HLA/ 
         ||
         ($annot && 
-         ($annot =~ /chrM:/
+         ($annot =~ /chrM:/i
           ||
           $annot =~ /NEIGHBOR/
           ||
           $annot =~ /BLAST/
+          ||
+          $annot =~ /GTEx|BodyMap|DGD_PARALOGS|HGNC_GENEFAM|Greger_Normal|Babiceanu_Normal|ConjoinG/
          )
         )
         ) 
