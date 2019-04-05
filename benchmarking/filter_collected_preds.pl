@@ -24,6 +24,8 @@ while(<$fh>) {
           $annot =~ /BLAST/
           ||
           $annot =~ /GTEx|BodyMap|DGD_PARALOGS|HGNC_GENEFAM|Greger_Normal|Babiceanu_Normal|ConjoinG/
+          ||
+          $fusion_name =~ /IG[HKL].*--IG[HKL]/   
          )
         )
         ) 

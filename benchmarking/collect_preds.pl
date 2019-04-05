@@ -49,22 +49,13 @@ my %prog_type_to_file_parser = (
 
     'SOAP-fuse' => 'SOAPfuse_parser',
 
-    'STAR-Fusion' => 'STARFusion_parser',
-    'STAR-Fusion_GR38' => 'STARFusion_parser',
-    'STAR_FUSION_GRCh38v24' => 'STARFusion_parser',
-    'starFusionGRCh37_gencode_v19_FL4' => 'STARFusion_parser',
-    'starFusionGRCh38_gencode_v26' => 'STARFusion_parser',
-
-
-    'STAR_FUSION_v19_Oct21_17' => 'STARFusion_parser',
-    'STAR_FUSION_v19_Oct21_17_bbmerge' => 'STARFusion_parser',
-    'STAR_FUSION_v19_Oct21_17_bbORem' => 'STARFusion_parser',
     'STAR_FUSION' => 'STARFusion_parser',
-
     
     'TopHat-Fusion' => 'TopHatFusion_parser',
 
     'PIZZLY' => 'PIZZLY_parser',
+
+    'ARRIBA' => 'ARRIBA_parser'
     
     );
 
