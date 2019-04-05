@@ -78,6 +78,9 @@ sub parse_fusion_result_file {
         my $geneA = $x[0];
         my $geneB = $x[1];
 
+        $geneA =~ s/\(\d+\)//g;
+        $geneB =~ s/\(\d+\)//g;
+        
         my $coord_info_A = $x[4];
         my ($chrA, $coordA) = split(/:/, $coord_info_A);
 
