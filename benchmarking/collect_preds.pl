@@ -55,7 +55,9 @@ my %prog_type_to_file_parser = (
 
     'PIZZLY' => 'PIZZLY_parser',
 
-    'ARRIBA' => 'ARRIBA_parser'
+    'ARRIBA' => 'ARRIBA_parser',
+
+    'STARCHIP' => 'STARCHIP_parser'
     
     );
 
