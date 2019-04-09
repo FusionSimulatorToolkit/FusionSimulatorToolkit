@@ -99,6 +99,10 @@ main: {
 sub average {
     my (@avg_vals) = @_;
 
+    if (scalar(@avg_vals) == 0) {
+        return("NA");
+    }
+    
     my $sum = 0;
     foreach my $val (@avg_vals) {
         $sum += $val;
