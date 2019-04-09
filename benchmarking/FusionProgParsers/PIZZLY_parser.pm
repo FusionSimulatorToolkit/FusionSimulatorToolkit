@@ -75,8 +75,15 @@ sub parse_fusion_result_file {
     #use Data::Dumper;
     #print STDERR Dumper($json_hash);
 
+
+    my $fh;
+    if ($pizzly_json_file =~ /.gz$/) {
+        open($fh, "gunzip -c $pizzly_json_file | ") or die "Error, cannot open file $pizzly_json_file";
+    }
+    else {
+        open($fh, $pizzly_json_file) or die "Error, cannot open file: $pizzly_json_file";
+    }
     
-    open(my $fh, $pizzly_json_file) or die "Error, cannot open file: $pizzly_json_file";
     while(<$fh>) {
         s/^\s+//;
         
