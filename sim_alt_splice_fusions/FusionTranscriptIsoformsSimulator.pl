@@ -23,18 +23,18 @@ my $min_chimeras_per_gene = $ARGV[3] or die $usage;
 
 my $MIN_CHIMERA_PART_LENGTH = 100;
 
-my $fasta_reader = new Fasta_reader($fasta_db);
-my %genome = $fasta_reader->retrieve_all_seqs_hash();
-
 my $gene_obj_indexer_href = {};
 
 ## associate gene identifiers with contig id's.
-my $contig_to_gene_list_href = &GFF3_utils::index_GTF_gene_objs($gtf_file, $gene_obj_indexer_href);
+my $contig_to_gene_list_href = &GTF_utils::index_GTF_gene_objs($gtf_file, $gene_obj_indexer_href);
 
 my @gene_ids = keys %$gene_obj_indexer_href;
 foreach my $gene (values %$gene_obj_indexer_href) {
     $gene->delete_isoforms();
 }
+
+my $fasta_reader = new Fasta_reader($fasta_db);
+my %genome = $fasta_reader->retrieve_all_seqs_hash();
 
 
 
