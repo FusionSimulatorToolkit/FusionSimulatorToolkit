@@ -141,16 +141,17 @@ while ($num_chimeric_genes_made < $max_num_genes) {
      
             push (@chim_entries, $chim_entry);
         }
-
-        if (scalar(@chim_entries) >= $min_chimeras_per_gene) {
-            $num_chimeric_genes_made++;
-            
-            $GENES_USED{$gene_id_left}++;
-            $GENES_USED{$gene_id_right}++;
-
-            print join("", @chim_entries);
-            
-        }
+    }
+        
+    if (scalar(@chim_entries) >= $min_chimeras_per_gene) {
+        $num_chimeric_genes_made++;
+        
+        $GENES_USED{$gene_id_left}++;
+        $GENES_USED{$gene_id_right}++;
+        
+        print join("", @chim_entries);
+        
+        
     }
 }
 

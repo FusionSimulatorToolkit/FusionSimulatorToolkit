@@ -1,0 +1,12 @@
+./FusionTranscriptIsoformsSimulator.pl /seq/RNASEQ/__ctat_genome_lib_building/Apr2020/GRCh38_gencode_v22_CTAT_lib_Apr032020.plug-n-play/ctat_genome_lib_build_dir/ref_annot.gtf /seq/RNASEQ/__ctat_genome_lib_building/Apr2020/GRCh38_gencode_v22_CTAT_lib_Apr032020.plug-n-play/ctat_genome_lib_build_dir/ref_genome.fa 2000 2 > fusion_isoforms.db.fasta
+
+
+./select_fusions_by_gene_and_breakpoint.pl  > fusion_isoforms.db.fasta.reorg_tab
+
+
+./select_fusions_by_shared_brkpt.pl  fusion_isoforms.db.fasta.reorg_tab right 250 > selected.right.250.tab
+
+./select_fusions_by_shared_brkpt.pl  fusion_isoforms.db.fasta.reorg_tab left 250 > selected.left.250.tab
+
+
+
