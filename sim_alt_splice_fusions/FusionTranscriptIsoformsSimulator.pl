@@ -6,35 +6,35 @@ use FindBin;
 use lib ("$FindBin::Bin/../PerlLib");
 use Gene_obj;
 use Fasta_reader;
-use GFF3_utils;
+use GTF_utils;
 use Carp;
 use Nuc_translator;
 use List::Util qw(shuffle);
 
 
-my $usage = "\n\nusage: $0 gff3_file genome_fasta num_genes min_chimeras_per_gene\n\n";
+my $usage = "\n\nusage: $0 gtf_file genome_fasta max_num_genes min_chimeras_per_gene\n\n";
 
 
-my $gff3_file = $ARGV[0] or die $usage;
+my $gtf_file = $ARGV[0] or die $usage;
 my $fasta_db = $ARGV[1] or die $usage;
-my $num_genes = $ARGV[2] or die $usage;
+my $max_num_genes = $ARGV[2] or die $usage;
 my $min_chimeras_per_gene = $ARGV[3] or die $usage;
 
 
 my $MIN_CHIMERA_PART_LENGTH = 100;
 
-my $fasta_reader = new Fasta_reader($fasta_db);
-my %genome = $fasta_reader->retrieve_all_seqs_hash();
-
 my $gene_obj_indexer_href = {};
 
 ## associate gene identifiers with contig id's.
-my $contig_to_gene_list_href = &GFF3_utils::index_GFF3_gene_objs($gff3_file, $gene_obj_indexer_href);
+my $contig_to_gene_list_href = &GTF_utils::index_GTF_gene_objs($gtf_file, $gene_obj_indexer_href);
 
 my @gene_ids = keys %$gene_obj_indexer_href;
 foreach my $gene (values %$gene_obj_indexer_href) {
     $gene->delete_isoforms();
 }
+
+my $fasta_reader = new Fasta_reader($fasta_db);
+my %genome = $fasta_reader->retrieve_all_seqs_hash();
 
 
 
@@ -46,7 +46,7 @@ my $num_genes = scalar (@gene_ids);
 
 
 my $num_chimeric_genes_made = 0;
-while ($num_chimeras_made < $num_chimeras) {
+while ($num_chimeric_genes_made < $max_num_genes) {
         
     my $gene_id_left = $gene_ids[ int(rand($num_genes)) ];
     my $gene_id_right = $gene_ids[ int(rand($num_genes)) ];
@@ -59,7 +59,7 @@ while ($num_chimeras_made < $num_chimeras) {
         
     if ($GENES_USED{$gene_id_left} || $GENES_USED{$gene_id_right}) { next; }
 
-    print STDERR "[$num_chimeras_made done]  Testing: $gene_id_left vs. $gene_id_right\n";
+    print STDERR "[$num_chimeric_genes_made done]  Testing: $gene_id_left vs. $gene_id_right\n";
 
     if ($gene_id_left eq $gene_id_right) { next; }
 
@@ -141,16 +141,17 @@ while ($num_chimeras_made < $num_chimeras) {
      
             push (@chim_entries, $chim_entry);
         }
-
-        if (scalar(@chim_entries) >= $min_chimeras_per_gene) {
-            $num_chimeras_made++;
-            
-            $GENES_USED{$gene_A}++;
-            $GENES_USED{$gene_B}++;
-
-            print join("", @chim_entries);
-            
-        }
+    }
+        
+    if (scalar(@chim_entries) >= $min_chimeras_per_gene) {
+        $num_chimeric_genes_made++;
+        
+        $GENES_USED{$gene_id_left}++;
+        $GENES_USED{$gene_id_right}++;
+        
+        print join("", @chim_entries);
+        
+        
     }
 }
 
