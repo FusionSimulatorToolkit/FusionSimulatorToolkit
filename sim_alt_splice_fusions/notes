@@ -10,3 +10,9 @@
 
 
 
+./selected_tab_to_fasta.pl  < selected.left.250.tab  >  selected.left.250.tab.fasta
+./selected_tab_to_fasta.pl  < selected.right.250.tab  >  selected.right.250.tab.fasta
+
+
+# broad workspace: /seq/RNASEQ/FUSION_INSPECTOR_DEVEL/FI_2020_Devel/simulate_alt_splice_fusions_Feb2021
+
