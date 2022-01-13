@@ -16,6 +16,9 @@ my $read_len = $ARGV[2] or die $usage;
 my $fasta_reader = new Fasta_reader($targets_fa);
 
 
+my $SPLIT_ANCHOR_REQUIRED = 10;
+
+
 my $output_left_fq = $output_prefix . ".left_fq";
 my $output_right_fq = $output_prefix . ".right_fq";
 
@@ -98,12 +101,12 @@ sub sim_fusion_reads {
         my $rend_read_start = $frag_end - $read_len + 1;
         my $rend_read_end = $frag_end;
                 
-        if ( ($lend_read_start <= $brkpt_pos && $brkpt_pos <= $lend_read_end) 
+        if ( ($lend_read_start + $SPLIT_ANCHOR_REQUIRED <= $brkpt_pos && $brkpt_pos <= $lend_read_end - $SPLIT_ANCHOR_REQUIRED) 
              ||
-             ($rend_read_start <= $brkpt_pos && $brkpt_pos <= $rend_read_end) ) {
+             ($rend_read_start + $SPLIT_ANCHOR_REQUIRED <= $brkpt_pos && $brkpt_pos <= $rend_read_end - $SPLIT_ANCHOR_REQUIRED) ) {
 
             $count_split += 1;
-
+            
         }
         else {
             $count_span += 1;
@@ -185,7 +188,7 @@ sub sim_rnaseq_reads {
     my $left_fq_file = "tmp.left_fq";
     my $right_fq_file = "tmp.right.fq";
 
-    my $cmd = "wgsim-trans $tmp_fa_file $left_fq_file $right_fq_file -N $num_reads -1 $read_len -2 $read_len";
+    my $cmd = "wgsim-trans $tmp_fa_file $left_fq_file $right_fq_file -N $num_reads -1 $read_len -2 $read_len -e 0 -r 0 -R 0 ";
     &process_cmd($cmd);
     
     return($left_fq_file, $right_fq_file);
