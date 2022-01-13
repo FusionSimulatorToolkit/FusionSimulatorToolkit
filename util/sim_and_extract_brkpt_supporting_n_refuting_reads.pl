@@ -26,6 +26,7 @@ open(my $right_fq_ofh, ">$output_right_fq") or die $!;
 open(my $stats_ofh, ">$output_stats_file") or die $!;
 
 
+my $counter = 0;
 while(1) {
 
     my $fusion_entry = $fasta_reader->next();
@@ -48,11 +49,13 @@ while(1) {
     my $right_acc = $right_orig_entry->get_accession();
     my $right_unfused_read_count = &sim_unfused_reads($right_orig_entry, $left_fq_ofh, $right_fq_ofh, $read_len);
     
-    print join("\t", $fusion_acc, $split_read_count, $span_read_count,
+    print $stats_ofh join("\t", $fusion_acc, $split_read_count, $span_read_count,
         $left_acc, $left_unfused_read_count,
         $right_acc, $right_unfused_read_count) . "\n";
+
+    $counter += 1;
     
-    last;
+    if ($counter >= 5) { last; }
 }
 
 
