@@ -54,8 +54,7 @@ while(1) {
         $right_acc, $right_unfused_read_count) . "\n";
 
     $counter += 1;
-    
-    if ($counter >= 5) { last; }
+    #if ($counter >= 20) { last; }
 }
 
 

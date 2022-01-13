@@ -148,7 +148,7 @@ while ($num_chimeras_made < $num_chimeras) {
         . uc($left_cdna) . lc($right_cdna) . "\n";
      
     
-    print ">$trans_A brkpt: " . length($left_cdna_orig) . "\n" .
+    print ">$trans_A brkpt: " . length($left_cdna) . "\n" .
         uc($left_cdna_orig) . "\n";
     
     print ">$trans_B brkpt: " . (length($right_cdna_orig) - length($right_cdna) ) . "\n" .
