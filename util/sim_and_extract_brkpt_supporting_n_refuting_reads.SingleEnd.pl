@@ -94,14 +94,13 @@ sub sim_fusion_reads {
         }
         
         # check if overlaps breakpoint.
-        if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
-            next;
-        }
+        if ($frag_start <= $brkpt_pos - $SPLIT_ANCHOR_REQUIRED && $frag_end  >=  $brkpt_pos + $SPLIT_ANCHOR_REQUIRED ) {
         
-        $count_split += 1;
+            $count_split += 1;
                 
-        my $fq_record = $fq_entry->get_fastq_record();
-        print $single_fq_ofh $fq_record;
+            my $fq_record = $fq_entry->get_fastq_record();
+            print $single_fq_ofh $fq_record;
+        }
     }
     
     return($count_split);
@@ -144,14 +143,13 @@ sub sim_unfused_reads {
         }
         
         # check if overlaps breakpoint.
-        if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
-            next;
-        }
-        
-        $count_split += 1;
+        if ($frag_start <= $brkpt_pos - $SPLIT_ANCHOR_REQUIRED && $frag_end  >=  $brkpt_pos + $SPLIT_ANCHOR_REQUIRED ) {
+          
+            $count_split += 1;
                 
-        my $fq_record = $fq_entry->get_fastq_record();
-        print $single_fq_ofh $fq_record;
+            my $fq_record = $fq_entry->get_fastq_record();
+            print $single_fq_ofh $fq_record;
+        }
     }
     
 

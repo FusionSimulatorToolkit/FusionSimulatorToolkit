@@ -87,8 +87,8 @@ sub sim_fusion_reads {
         # @DPP7|ENSG00000176978.9--ELP4|ENSG00000109911.13_18_606_3:0:0_2:0:0_e/1
         
         my @vals = split(/_/, $core_read_name);
-        my $frag_start = $vals[-5];
-        my $frag_end = $vals[-4];
+        my $frag_start = $vals[-6];
+        my $frag_end = $vals[-5];
 
         # check if overlaps breakpoint.
         if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
@@ -146,8 +146,8 @@ sub sim_unfused_reads {
         # @DPP7|ENSG00000176978.9--ELP4|ENSG00000109911.13_18_606_3:0:0_2:0:0_e/1
         
         my @vals = split(/_/, $core_read_name);
-        my $frag_start = $vals[-5];
-        my $frag_end = $vals[-4];
+        my $frag_start = $vals[-6];
+        my $frag_end = $vals[-5];
 
         # check if overlaps breakpoint.
         if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
@@ -178,7 +178,7 @@ sub sim_rnaseq_reads {
     my $accession = $seq_obj->get_accession();
     my $sequence = $seq_obj->get_sequence();
 
-    my $num_reads = int ( ( length($sequence) * $depth_of_cov) / $read_len );
+    my $num_reads = int ( ( length($sequence) * $depth_of_cov) / (2 * $read_len ) );
     
     my $tmp_fa_file = "tmp.fa";
     open(my $tmp_fa_ofh, ">$tmp_fa_file") or die $!;
@@ -188,7 +188,7 @@ sub sim_rnaseq_reads {
     my $left_fq_file = "tmp.left_fq";
     my $right_fq_file = "tmp.right.fq";
 
-    my $cmd = "wgsim-trans $tmp_fa_file $left_fq_file $right_fq_file -N $num_reads -1 $read_len -2 $read_len -e 0.01 -r 0"; #-e 0 -r 0 -R 0 ";
+    my $cmd = "wgsim-trans $tmp_fa_file $left_fq_file $right_fq_file -N $num_reads -1 $read_len -2 $read_len -e 0.01 -r 0"; 
     &process_cmd($cmd);
     
     return($left_fq_file, $right_fq_file);
