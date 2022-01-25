@@ -177,7 +177,7 @@ sub sim_rnaseq_reads {
     my $left_fq_file = "tmp.single_fq";
     my $right_fq_file = "tmp.to_delete.fq";
 
-    my $cmd = "wgsim-trans $tmp_fa_file $left_fq_file $right_fq_file -N $num_reads -1 $read_len -2 $read_len -e 0.01 -r 0"; #-e 0 -r 0 -R 0 ";
+    my $cmd = "wgsim-trans $tmp_fa_file $left_fq_file $right_fq_file -N $num_reads -1 $read_len -2 $read_len -e 0.001 -r 0"; #-e 0 -r 0 -R 0 ";
     &process_cmd($cmd);
     
     unlink($right_fq_file);
