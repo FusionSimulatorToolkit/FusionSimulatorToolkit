@@ -10,15 +10,63 @@ use GFF3_utils;
 use Carp;
 use Nuc_translator;
 use List::Util qw(shuffle);
+use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
 
 
-my $usage = "\n\nusage: $0 gff3_file genome_fasta num_chimeras\n\n";
+my ($gff3_file, $fasta_db, $num_chimeras, $out_prefix, $help_flag);
 
 
-my $gff3_file = $ARGV[0] or die $usage;
-my $fasta_db = $ARGV[1] or die $usage;
-my $num_chimeras = $ARGV[2] or die $usage;
+if ($ENV{CTAT_GENOME_LIB}) {
+    $gff3_file = "$ENV{CTAT_GENOME_LIB}/ref_annot.gtf";
+    $fasta_db = "$ENV{CTAT_GENOME_LIB}/ref_genome.fa";
+}
 
+
+my $usage = <<__EOUSAGE;
+
+###################################################################
+#
+#  ** uses CTAT_GENOME_LIB env var for defaults ** 
+#
+#    --gff3_file <string>     ref annot gff3 file ($gff3_file)
+#
+#    --ref_genome <string>    ref genome fasta file ($fasta_db)
+#
+#  reqiored:
+#
+#   --num_chimeras <int>     number of chimeric transcripts to create
+#
+#   --out_prefix <string>    output prefix
+#
+####################################################################
+
+__EOUSAGE
+
+    ;
+
+
+
+
+
+&GetOptions ( 'h' => \$help_flag,
+              'gff3_file=s' => \$gff3_file,
+              'ref_genome=s' => \$fasta_db,
+              'num_chimeras=i' => \$num_chimeras,
+              'out_prefix=s' => \$out_prefix,
+    );
+
+
+if ($help_flag) {
+    die $usage;
+}
+
+unless ($gff3_file && $fasta_db && $num_chimeras && $out_prefix) {
+    die $usage;
+}
+
+
+open(my $out_fasta_ofh, ">$out_prefix.fasta") or die "Error, cannot write to $out_prefix.fasta";
+open(my $out_accs_ofh, ">$out_prefix.fusion_list") or die "Error, cannot write to $out_prefix.fusion_list";
 
 my $MIN_CHIMERA_PART_LENGTH = 100;
 
@@ -144,21 +192,29 @@ while ($num_chimeras_made < $num_chimeras) {
     my $trans_A = $gene_obj_left_copy->{Model_feat_name};
     my $trans_B = $gene_obj_right_copy->{Model_feat_name};
 
-    print ">$gene_A--$gene_B $trans_A--$trans_B $part_A_coord_string $part_B_coord_string FusedAt:" . length($left_cdna) . "\n"
+    print $out_fasta_ofh ">$gene_A--$gene_B $trans_A--$trans_B $part_A_coord_string $part_B_coord_string FusedAt:" . length($left_cdna) . "\n"
         . uc($left_cdna) . lc($right_cdna) . "\n";
      
     
-    print ">$trans_A brkpt: " . length($left_cdna) . "\n" .
+    print $out_fasta_ofh ">$trans_A brkpt: " . length($left_cdna) . "\n" .
         uc($left_cdna_orig) . "\n";
     
-    print ">$trans_B brkpt: " . (length($right_cdna_orig) - length($right_cdna) ) . "\n" .
+    print $out_fasta_ofh ">$trans_B brkpt: " . (length($right_cdna_orig) - length($right_cdna) ) . "\n" .
         uc($right_cdna_orig) . "\n";
     
+    my ($gene_tok_A, $rest) = split(/\|/, $gene_A);
+    my ($gene_tok_B, $rest2) = split(/\|/, $gene_B);
+    
+    my $fusion_tok = "$gene_tok_A--$gene_tok_B";
+    print $out_accs_ofh "$fusion_tok\n";
     
     $num_chimeras_made++;
 
     $GENES_USED{$gene_A}++;
     $GENES_USED{$gene_B}++;
+
+    
+
 
 }
 
