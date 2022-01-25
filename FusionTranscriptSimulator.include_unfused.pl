@@ -6,18 +6,18 @@ use FindBin;
 use lib ("$FindBin::Bin/PerlLib");
 use Gene_obj;
 use Fasta_reader;
-use GFF3_utils;
+use GTF_utils;
 use Carp;
 use Nuc_translator;
 use List::Util qw(shuffle);
 use Getopt::Long qw(:config posix_default no_ignore_case bundling pass_through);
+use Data::Dumper;
 
-
-my ($gff3_file, $fasta_db, $num_chimeras, $out_prefix, $help_flag);
+my ($gtf_file, $fasta_db, $num_chimeras, $out_prefix, $help_flag);
 
 
 if ($ENV{CTAT_GENOME_LIB}) {
-    $gff3_file = "$ENV{CTAT_GENOME_LIB}/ref_annot.gtf";
+    $gtf_file = "$ENV{CTAT_GENOME_LIB}/ref_annot.gtf";
     $fasta_db = "$ENV{CTAT_GENOME_LIB}/ref_genome.fa";
 }
 
@@ -28,7 +28,7 @@ my $usage = <<__EOUSAGE;
 #
 #  ** uses CTAT_GENOME_LIB env var for defaults ** 
 #
-#    --gff3_file <string>     ref annot gff3 file ($gff3_file)
+#    --gtf_file <string>     ref annot gtf file ($gtf_file)
 #
 #    --ref_genome <string>    ref genome fasta file ($fasta_db)
 #
@@ -49,7 +49,7 @@ __EOUSAGE
 
 
 &GetOptions ( 'h' => \$help_flag,
-              'gff3_file=s' => \$gff3_file,
+              'gtf_file=s' => \$gtf_file,
               'ref_genome=s' => \$fasta_db,
               'num_chimeras=i' => \$num_chimeras,
               'out_prefix=s' => \$out_prefix,
@@ -60,7 +60,7 @@ if ($help_flag) {
     die $usage;
 }
 
-unless ($gff3_file && $fasta_db && $num_chimeras && $out_prefix) {
+unless ($gtf_file && $fasta_db && $num_chimeras && $out_prefix) {
     die $usage;
 }
 
@@ -70,26 +70,28 @@ open(my $out_accs_ofh, ">$out_prefix.fusion_list") or die "Error, cannot write t
 
 my $MIN_CHIMERA_PART_LENGTH = 100;
 
-my $fasta_reader = new Fasta_reader($fasta_db);
-my %genome = $fasta_reader->retrieve_all_seqs_hash();
-
 my $gene_obj_indexer_href = {};
 
 ## associate gene identifiers with contig id's.
-my $contig_to_gene_list_href = &GFF3_utils::index_GFF3_gene_objs($gff3_file, $gene_obj_indexer_href);
+my $contig_to_gene_list_href = &GTF_utils::index_GTF_gene_objs($gtf_file, $gene_obj_indexer_href);
 
 my @gene_ids = keys %$gene_obj_indexer_href;
 foreach my $gene (values %$gene_obj_indexer_href) {
     $gene->delete_isoforms();
 }
 
-
-
-my %GENES_USED;
-
 @gene_ids = shuffle(@gene_ids);
 
 my $num_genes = scalar (@gene_ids);
+
+## parse genome file
+my $fasta_reader = new Fasta_reader($fasta_db);
+my %genome = $fasta_reader->retrieve_all_seqs_hash();
+
+################
+## make chimeras
+
+my %GENES_USED;
 
 my $num_chimeras_made = 0;
 while ($num_chimeras_made < $num_chimeras) {
@@ -189,6 +191,13 @@ while ($num_chimeras_made < $num_chimeras) {
     my $gene_A = $gene_obj_left_copy->{TU_feat_name};
     my $gene_B = $gene_obj_right_copy->{TU_feat_name};
 
+    my $gene_A_symbol = $gene_obj_left_copy->{com_name};
+    $gene_A = $gene_A_symbol . "|" . $gene_A;
+    
+    my $gene_B_symbol = $gene_obj_right_copy->{com_name};
+    $gene_B = $gene_B_symbol . "|" . $gene_B;
+    
+    
     my $trans_A = $gene_obj_left_copy->{Model_feat_name};
     my $trans_B = $gene_obj_right_copy->{Model_feat_name};
 
@@ -196,14 +205,17 @@ while ($num_chimeras_made < $num_chimeras) {
         . uc($left_cdna) . lc($right_cdna) . "\n";
      
     
-    print $out_fasta_ofh ">$trans_A brkpt: " . length($left_cdna) . "\n" .
+    print $out_fasta_ofh ">$gene_A $trans_A brkpt: " . length($left_cdna) . "\n" .
         uc($left_cdna_orig) . "\n";
     
-    print $out_fasta_ofh ">$trans_B brkpt: " . (length($right_cdna_orig) - length($right_cdna) ) . "\n" .
+    print $out_fasta_ofh ">$gene_B $trans_B brkpt: " . (length($right_cdna_orig) - length($right_cdna) ) . "\n" .
         uc($right_cdna_orig) . "\n";
     
-    my ($gene_tok_A, $rest) = split(/\|/, $gene_A);
-    my ($gene_tok_B, $rest2) = split(/\|/, $gene_B);
+    #my ($gene_tok_A, $rest) = split(/\|/, $gene_A);
+    #my ($gene_tok_B, $rest2) = split(/\|/, $gene_B);
+    
+    my $gene_tok_A = $gene_A_symbol;
+    my $gene_tok_B = $gene_B_symbol;
     
     my $fusion_tok = "$gene_tok_A--$gene_tok_B";
     print $out_accs_ofh "$fusion_tok\n";
