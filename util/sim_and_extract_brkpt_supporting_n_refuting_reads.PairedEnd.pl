@@ -17,7 +17,7 @@ my $fasta_reader = new Fasta_reader($targets_fa);
 
 
 my $SPLIT_ANCHOR_REQUIRED = 10;
-
+my $FUZZ = 5;
 
 my $output_left_fq = $output_prefix . ".left_fq";
 my $output_right_fq = $output_prefix . ".right_fq";
@@ -87,9 +87,9 @@ sub sim_fusion_reads {
         # @DPP7|ENSG00000176978.9--ELP4|ENSG00000109911.13_18_606_3:0:0_2:0:0_e/1
         
         my @vals = split(/_/, $core_read_name);
-        my $frag_start = $vals[-6];
-        my $frag_end = $vals[-5];
-
+        my $frag_start = $vals[-6] + 1;
+        my $frag_end = $vals[-5] + 1;
+        
         # check if overlaps breakpoint.
         if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
             next;
@@ -108,7 +108,7 @@ sub sim_fusion_reads {
             $count_split += 1;
             
         }
-        else {
+        elsif ($lend_read_end <= $brkpt_pos + $FUZZ && $brkpt_pos - $FUZZ < $rend_read_start) {
             $count_span += 1;
         }
         

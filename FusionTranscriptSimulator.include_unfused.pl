@@ -191,6 +191,11 @@ while ($num_chimeras_made < $num_chimeras) {
     my $gene_A = $gene_obj_left_copy->{TU_feat_name};
     my $gene_B = $gene_obj_right_copy->{TU_feat_name};
 
+
+    $GENES_USED{$gene_A}++;
+    $GENES_USED{$gene_B}++;
+
+
     my $gene_A_symbol = $gene_obj_left_copy->{com_name};
     $gene_A = $gene_A_symbol . "|" . $gene_A;
     
@@ -222,8 +227,6 @@ while ($num_chimeras_made < $num_chimeras) {
     
     $num_chimeras_made++;
 
-    $GENES_USED{$gene_A}++;
-    $GENES_USED{$gene_B}++;
 
     
 
