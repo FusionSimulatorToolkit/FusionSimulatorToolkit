@@ -44,13 +44,13 @@ while(1) {
     ## examine left unfused
     my $left_orig_entry = $fasta_reader->next();
     my $left_acc = $left_orig_entry->get_accession();
-    my $left_unfused_read_count = &sim_unfused_reads($left_orig_entry, $left_fq_ofh, $right_fq_ofh, $read_len);
+    my $left_unfused_read_count = &sim_unfused_reads($left_orig_entry, $left_fq_ofh, $right_fq_ofh, $read_len, "LEFTcounter");
     
 
     ## examine right unfused
     my $right_orig_entry = $fasta_reader->next();
     my $right_acc = $right_orig_entry->get_accession();
-    my $right_unfused_read_count = &sim_unfused_reads($right_orig_entry, $left_fq_ofh, $right_fq_ofh, $read_len);
+    my $right_unfused_read_count = &sim_unfused_reads($right_orig_entry, $left_fq_ofh, $right_fq_ofh, $read_len, "RIGHTcounter");
     
     print $stats_ofh join("\t", $fusion_acc, $split_read_count, $span_read_count,
         $left_acc, $left_unfused_read_count,
@@ -87,8 +87,8 @@ sub sim_fusion_reads {
         # @DPP7|ENSG00000176978.9--ELP4|ENSG00000109911.13_18_606_3:0:0_2:0:0_e/1
         
         my @vals = split(/_/, $core_read_name);
-        my $frag_start = $vals[-6] + 1;
-        my $frag_end = $vals[-5] + 1;
+        my $frag_start = $vals[-6];
+        my $frag_end = $vals[-5];
         
         # check if overlaps breakpoint.
         if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
@@ -100,21 +100,43 @@ sub sim_fusion_reads {
         
         my $rend_read_start = $frag_end - $read_len + 1;
         my $rend_read_end = $frag_end;
-                
-        if ( ($lend_read_start + $SPLIT_ANCHOR_REQUIRED <= $brkpt_pos && $brkpt_pos <= $lend_read_end - $SPLIT_ANCHOR_REQUIRED) 
+        
+        my $read_type = "other";
+                 
+        ### brkpt position:     |
+        ##               AGCTAGCTactgactg
+
+
+        if ( ($lend_read_start + $SPLIT_ANCHOR_REQUIRED -1 <= $brkpt_pos && $brkpt_pos <= $lend_read_end - $SPLIT_ANCHOR_REQUIRED) 
              ||
-             ($rend_read_start + $SPLIT_ANCHOR_REQUIRED <= $brkpt_pos && $brkpt_pos <= $rend_read_end - $SPLIT_ANCHOR_REQUIRED) ) {
+             ($rend_read_start + $SPLIT_ANCHOR_REQUIRED -1 <= $brkpt_pos && $brkpt_pos <= $rend_read_end - $SPLIT_ANCHOR_REQUIRED) ) {
 
             $count_split += 1;
+            $read_type = "split";
             
         }
-        elsif ($lend_read_end <= $brkpt_pos + $FUZZ && $brkpt_pos - $FUZZ < $rend_read_start) {
+
+
+        #  LEND span fuzz                         <=======================>--------------------------<=================> 
+        #    brkpt                                                       |
+        #  REND span fuzz    <=========>--------------------------------<====================>
+        #                                                                ^
+        #                                                             fuzzy overlap allowed
+        
+
+        elsif ($lend_read_end <= $brkpt_pos + $FUZZ && $brkpt_pos + 1 - $FUZZ < $rend_read_start) {
             $count_span += 1;
+            $read_type = "span";
         }
         
         my $left_fq_record = $left_fq_entry->get_fastq_record();
+        $left_fq_record =~ s/\n\+\n/\n\+$read_type\n/;
+        $left_fq_record =~ s/_flip/_${read_type}-flip/;
+
         my $right_fq_record = $right_fq_entry->get_fastq_record();
-        
+        $right_fq_record =~ s/\n\+\n/\n\+$read_type\n/;
+        $right_fq_record =~ s/_flip/_${read_type}-flip/;
+
         print $left_fq_ofh $left_fq_record;
         print $right_fq_ofh $right_fq_record;
     }
@@ -125,7 +147,7 @@ sub sim_fusion_reads {
 
 ####
 sub sim_unfused_reads {
-    my ($seq_entry, $left_fq_ofh, $right_fq_ofh, $read_len) = @_;
+    my ($seq_entry, $left_fq_ofh, $right_fq_ofh, $read_len, $read_type) = @_;
 
     # DPP7|ENST00000497375.1 brkpt: 172
     my $header = $seq_entry->get_header();
@@ -157,8 +179,13 @@ sub sim_unfused_reads {
         $count_span += 1;
         
         my $left_fq_record = $left_fq_entry->get_fastq_record();
-        my $right_fq_record = $right_fq_entry->get_fastq_record();
+        $left_fq_record =~ s/\n\+\n/\n\+$read_type\n/;
+        $left_fq_record =~ s/_flip/_${read_type}-flip/;
         
+        my $right_fq_record = $right_fq_entry->get_fastq_record();
+        $right_fq_record =~ s/\n\+\n/\n\+$read_type\n/;        
+        $right_fq_record =~ s/_flip/_${read_type}-flip/;
+
         print $left_fq_ofh $left_fq_record;
         print $right_fq_ofh $right_fq_record;
     }
