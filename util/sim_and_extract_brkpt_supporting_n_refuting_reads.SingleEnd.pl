@@ -27,6 +27,8 @@ open(my $single_fq_ofh, ">$output_left_fq") or die $!;
 open(my $stats_ofh, ">$output_stats_file") or die $!;
 
 
+print $stats_ofh join("\t", 'fusion_name', 'split', 'left_gene', 'counter_left', 'right_gene', 'counter_right');
+
 my $counter = 0;
 while(1) {
 
