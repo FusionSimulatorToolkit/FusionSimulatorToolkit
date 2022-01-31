@@ -16,23 +16,16 @@ use Data::Dumper;
 my ($gtf_file, $fasta_db, $num_chimeras, $out_prefix, $help_flag);
 
 
-if ($ENV{CTAT_GENOME_LIB}) {
-    $gtf_file = "$ENV{CTAT_GENOME_LIB}/ref_annot.gtf";
-    $fasta_db = "$ENV{CTAT_GENOME_LIB}/ref_genome.fa";
-}
+my $genome_lib_dir = $ENV{CTAT_GENOME_LIB};
 
 
 my $usage = <<__EOUSAGE;
 
 ###################################################################
 #
-#  ** uses CTAT_GENOME_LIB env var for defaults ** 
+#  --genome_lib_dir <string>  path to genome lib dir (default: $genome_lib_dir)
 #
-#    --gtf_file <string>     ref annot gtf file ($gtf_file)
-#
-#    --ref_genome <string>    ref genome fasta file ($fasta_db)
-#
-#  reqiored:
+#  required:
 #
 #   --num_chimeras <int>     number of chimeric transcripts to create
 #
@@ -49,7 +42,7 @@ __EOUSAGE
 
 
 &GetOptions ( 'h' => \$help_flag,
-              'gtf_file=s' => \$gtf_file,
+              'genome_lib_dir=s' => \$genome_lib_dir,
               'ref_genome=s' => \$fasta_db,
               'num_chimeras=i' => \$num_chimeras,
               'out_prefix=s' => \$out_prefix,
@@ -60,8 +53,23 @@ if ($help_flag) {
     die $usage;
 }
 
-unless ($gtf_file && $fasta_db && $num_chimeras && $out_prefix) {
+
+unless ($genome_lib_dir && $num_chimeras && $out_prefix) {
     die $usage;
+}
+
+
+$gtf_file = "$genome_lib_dir/ref_annot.gtf";
+$fasta_db = "$genome_lib_dir/ref_genome.fa";
+
+
+my $BLAST_PAIRS_IDX;
+my $blast_pairs_idx_file = "$genome_lib_dir/blast_pairs.idx";
+if (-s $blast_pairs_idx_file) {
+    $BLAST_PAIRS_IDX = new TiedHash( { use => $blast_pairs_idx_file } );
+}
+else {
+    die "Error: cannot locate $blast_pairs_idx_file";
 }
 
 
@@ -118,6 +126,15 @@ while ($num_chimeras_made < $num_chimeras) {
 
     my $gene_obj_right = $gene_obj_indexer_href->{$gene_id_right};
     my $right_chr_seq = $genome{$gene_obj_right->{asmbl_id}};
+ 
+
+    my $gene_A_symbol = $gene_obj_left->{com_name};
+    my $gene_B_symbol = $gene_obj_right->{com_name};
+    
+    if (&examine_seq_similarity($gene_A_symbol, $gene_B_symbol)) {
+        print "Skipping $gene_A_symbol, $gene_B_symbol, as have sequence similarity detected\n";
+        next;
+    }
     
     
     my $min_orig_seqlen = 1000;
@@ -196,10 +213,9 @@ while ($num_chimeras_made < $num_chimeras) {
     $GENES_USED{$gene_B}++;
 
 
-    my $gene_A_symbol = $gene_obj_left_copy->{com_name};
+ 
     $gene_A = $gene_A_symbol . "|" . $gene_A;
     
-    my $gene_B_symbol = $gene_obj_right_copy->{com_name};
     $gene_B = $gene_B_symbol . "|" . $gene_B;
     
     
@@ -328,4 +344,26 @@ sub all_consensus_intron_dinucs {
                 
     }
     return(1); # all good
+}
+
+
+
+####
+sub examine_seq_similarity {
+    my ($geneA, $geneB) = @_;
+    
+    #print STDERR "-examining seq similarity between $geneA and $geneB\n";
+
+    my @blast_hits;
+
+    # use pre-computed blast pair data
+    if (my $hit = $BLAST_PAIRS_IDX->get_value("$geneA--$geneB")) {
+        return($hit);
+    }
+    elsif ($hit = $BLAST_PAIRS_IDX->get_value("$geneB--$geneA")) {
+        return($hit);
+    }
+    else {
+        return();
+    }
 }
