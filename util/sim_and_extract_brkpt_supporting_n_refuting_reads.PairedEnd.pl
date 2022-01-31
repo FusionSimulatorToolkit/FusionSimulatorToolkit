@@ -84,7 +84,9 @@ sub sim_fusion_reads {
         my $left_fq_reader = new Fastq_reader($left_fq);
         my $right_fq_reader = new Fastq_reader($right_fq);
         
-        
+
+        $count_split = 0;
+        $count_span = 0;
         
         while (my $left_fq_entry = $left_fq_reader->next()) {
             my $right_fq_entry = $right_fq_reader->next();

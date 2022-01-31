@@ -74,11 +74,13 @@ sub sim_fusion_reads {
     
     while ($count_split == 0) {
 
+        $count_split = 0;
+        
         my $single_fq = &sim_rnaseq_reads($fusion_entry, $read_len);
         
         my $fq_reader = new Fastq_reader($single_fq);
         
-        
+
         
         while (my $fq_entry = $fq_reader->next()) {
             
