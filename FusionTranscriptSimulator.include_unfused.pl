@@ -31,6 +31,8 @@ my $usage = <<__EOUSAGE;
 #
 #   --out_prefix <string>    output prefix
 #
+#   --restricted_gene_fusions <string>    file containing list of gene symbols to restrict to for fusion gene pairs.
+#
 ####################################################################
 
 __EOUSAGE
@@ -38,7 +40,7 @@ __EOUSAGE
     ;
 
 
-
+my $restricted_gene_fusions_file;
 
 
 &GetOptions ( 'h' => \$help_flag,
@@ -46,6 +48,7 @@ __EOUSAGE
               'ref_genome=s' => \$fasta_db,
               'num_chimeras=i' => \$num_chimeras,
               'out_prefix=s' => \$out_prefix,
+              'restricted_gene_fusions=s' => \$restricted_gene_fusions_file,
     );
 
 
@@ -61,6 +64,23 @@ unless ($genome_lib_dir && $num_chimeras && $out_prefix) {
 
 $gtf_file = "$genome_lib_dir/ref_annot.gtf";
 $fasta_db = "$genome_lib_dir/ref_genome.fa";
+
+
+my @restricted_gene_fusions;
+my %restricted_gene_fusion_partners;
+my %restricted_gene_fusion_partner_to_gene_obj;
+if ($restricted_gene_fusions_file) {
+    open(my $fh, $restricted_gene_fusions_file) or die $!;
+    while(<$fh>) {
+        chomp;
+        my $fusion = $_;
+        my ($left_gene, $right_gene) = split(/--/, $fusion);
+        push (@restricted_gene_fusions, [$left_gene, $right_gene]);
+        $restricted_gene_fusion_partners{$left_gene} = 1;
+        $restricted_gene_fusion_partners{$right_gene} = 1;
+    }
+}
+
 
 
 my $BLAST_PAIRS_IDX;
@@ -81,11 +101,19 @@ my $MIN_CHIMERA_PART_LENGTH = 100;
 my $gene_obj_indexer_href = {};
 
 ## associate gene identifiers with contig id's.
+print STDERR "-parsing $gtf_file\n";
 my $contig_to_gene_list_href = &GTF_utils::index_GTF_gene_objs($gtf_file, $gene_obj_indexer_href);
 
+
+print STDERR "-restricting to single isoform per gene\n";
 my @gene_ids = keys %$gene_obj_indexer_href;
 foreach my $gene (values %$gene_obj_indexer_href) {
     $gene->delete_isoforms();
+    my $gene_sym = $gene->{com_name};
+    if (exists $restricted_gene_fusion_partners{$gene_sym}) {
+        $restricted_gene_fusion_partner_to_gene_obj{$gene_sym} = $gene;
+    }
+    
 }
 
 @gene_ids = shuffle(@gene_ids);
@@ -93,20 +121,43 @@ foreach my $gene (values %$gene_obj_indexer_href) {
 my $num_genes = scalar (@gene_ids);
 
 ## parse genome file
+print STDERR "-parsing $fasta_db\n";
 my $fasta_reader = new Fasta_reader($fasta_db);
 my %genome = $fasta_reader->retrieve_all_seqs_hash();
 
 ################
 ## make chimeras
+print STDERR "-simulating fusions.\n";
 
 my %GENES_USED;
 
 my $num_chimeras_made = 0;
 while ($num_chimeras_made < $num_chimeras) {
-    
-    my $gene_id_left = $gene_ids[ int(rand($num_genes)) ];
-    my $gene_id_right = $gene_ids[ int(rand($num_genes)) ];
 
+    my $gene_id_left;
+    my $gene_id_right;
+    
+    if (%restricted_gene_fusion_partners) {
+        my $restricted_fusion = shift @restricted_gene_fusions;
+        push(@restricted_gene_fusions, $restricted_fusion); # round robin
+
+        my ($left_sym, $right_sym) = @$restricted_fusion;
+        print STDERR "- ** exploring $left_sym with $right_sym\n";
+        my $left_gene_obj = $restricted_gene_fusion_partner_to_gene_obj{$left_sym};
+        my $right_gene_obj = $restricted_gene_fusion_partner_to_gene_obj{$right_sym};
+        
+        unless ($left_gene_obj && $right_gene_obj) {
+            print STDERR "-sorry, cannot find gene objects for both $left_sym and $right_sym\n";
+            next;
+        }
+        $gene_id_left = $left_gene_obj->{TU_feat_name};
+        $gene_id_right = $right_gene_obj->{TU_feat_name};
+    }
+    else {
+        $gene_id_left = $gene_ids[ int(rand($num_genes)) ];
+        $gene_id_right = $gene_ids[ int(rand($num_genes)) ];
+    }
+    
     if ($gene_id_left =~ /-/) { next; }  # avoid the annotated read-thru transcripts.
     if ($gene_id_right =~ /-/) { next; }
     
@@ -117,9 +168,6 @@ while ($num_chimeras_made < $num_chimeras) {
     print STDERR "[$num_chimeras_made done]  Testing: $gene_id_left vs. $gene_id_right\n";
 
     if ($gene_id_left eq $gene_id_right) { next; }
-
-    
-
 
     my $gene_obj_left = $gene_obj_indexer_href->{$gene_id_left};
     my $left_chr_seq = $genome{$gene_obj_left->{asmbl_id}};
@@ -137,23 +185,27 @@ while ($num_chimeras_made < $num_chimeras) {
     }
     
     
-    my $min_orig_seqlen = 1000;
+    my $min_orig_seqlen = 500;
     my $left_cdna_orig = $gene_obj_left->create_cDNA_sequence(\$left_chr_seq);
     if (length($left_cdna_orig) < $min_orig_seqlen) {
+        print STDERR "-left cdna too short\n";
         next;
     }
     my $right_cdna_orig = $gene_obj_right->create_cDNA_sequence(\$right_chr_seq);
     if (length($right_cdna_orig) < $min_orig_seqlen) {
+        print STDERR "-right cdna too short\n";
         next;
     }
     
     unless (&all_consensus_intron_dinucs($gene_obj_left, \$left_chr_seq)) { 
         $GENES_USED{$gene_id_left}++;
+        print STDERR "-$gene_id_left already used.\n";
         next; 
     }
 
     unless (&all_consensus_intron_dinucs($gene_obj_right, \$right_chr_seq)) { 
         $GENES_USED{$gene_id_right}++;
+        print STDERR "-$gene_id_right already used.\n";
         next; 
     }
     
@@ -163,7 +215,10 @@ while ($num_chimeras_made < $num_chimeras) {
     #########################
     
     my @left_exons_sampled = &select_exons($gene_obj_left, "left");
-    unless (@left_exons_sampled) { next; }
+    unless (@left_exons_sampled) { 
+        print STDERR "-no left exons sampled\n";
+        next; 
+    }
     
     #print "Gene before: " . $gene_obj_left->toString();
     
@@ -187,7 +242,10 @@ while ($num_chimeras_made < $num_chimeras) {
     #############################
 
     my @right_exons_sampled = &select_exons($gene_obj_right, "right");
-    unless (@right_exons_sampled) { next; }
+    unless (@right_exons_sampled) { 
+        print STDERR "-no right exons sampled.\n";
+        next; 
+    }
     
     my $gene_obj_right_copy = $gene_obj_right->clone_gene();
     $gene_obj_right_copy->{mRNA_exon_objs} = \@right_exons_sampled;
@@ -283,6 +341,7 @@ sub select_exons {
     my @exons = $gene_obj->get_exons();
 
     if (scalar @exons == 1) {
+        print STDERR "-" . $gene_obj->{com_name} . " has a single exon\n";
         return();
     }
 
@@ -291,10 +350,10 @@ sub select_exons {
         @exons = @exons[0..$last_index];
         
         # require last exon to contain a CDS
-        my $last_exon = $exons[$#exons];
-        unless ($last_exon->get_CDS_obj()) {
-            return();
-        }
+        #my $last_exon = $exons[$#exons];
+        #unless ($last_exon->get_CDS_obj()) {
+        #    return();
+        #}
         
     }
     else {
@@ -302,10 +361,10 @@ sub select_exons {
         @exons = @exons[$first_index..$#exons];
         
         # require first exon to have a CDS:
-        my $first_exon = $exons[0];
-        unless ($first_exon->get_CDS_obj()) {
-            return();
-        }
+        #my $first_exon = $exons[0];
+        #unless ($first_exon->get_CDS_obj()) {
+        #    return();
+        #}
     }
     
     return(@exons);

@@ -73,76 +73,82 @@ sub sim_fusion_reads {
     my $brkpt_pos = $1 or die "Error, cannot extract breakpoint from header: $header";
     
 
-    my ($left_fq, $right_fq) = &sim_rnaseq_reads($fusion_entry, $read_len);
-
-    my $left_fq_reader = new Fastq_reader($left_fq);
-    my $right_fq_reader = new Fastq_reader($right_fq);
-
-
     my $count_span = 0;
     my $count_split = 0;
 
-    while (my $left_fq_entry = $left_fq_reader->next()) {
-        my $right_fq_entry = $right_fq_reader->next();
 
-        my $core_read_name = $left_fq_entry->get_core_read_name();
-        # @DPP7|ENSG00000176978.9--ELP4|ENSG00000109911.13_18_606_3:0:0_2:0:0_e/1
-        
-        my @vals = split(/_/, $core_read_name);
-        my $frag_start = $vals[-6];
-        my $frag_end = $vals[-5];
-        
-        # check if overlaps breakpoint.
-        if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
-            next;
-        }
-                
-        my $lend_read_start = $frag_start;
-        my $lend_read_end = $frag_start + $read_len -1;
-        
-        my $rend_read_start = $frag_end - $read_len + 1;
-        my $rend_read_end = $frag_end;
-        
-        my $read_type = "other";
-                 
-        ### brkpt position:     |
-        ##               AGCTAGCTactgactg
+    while ($count_split == 0) {
 
-
-        if ( ($lend_read_start + $SPLIT_ANCHOR_REQUIRED -1 <= $brkpt_pos && $brkpt_pos <= $lend_read_end - $SPLIT_ANCHOR_REQUIRED) 
-             ||
-             ($rend_read_start + $SPLIT_ANCHOR_REQUIRED -1 <= $brkpt_pos && $brkpt_pos <= $rend_read_end - $SPLIT_ANCHOR_REQUIRED) ) {
-
-            $count_split += 1;
-            $read_type = "split";
+        my ($left_fq, $right_fq) = &sim_rnaseq_reads($fusion_entry, $read_len);
+        
+        my $left_fq_reader = new Fastq_reader($left_fq);
+        my $right_fq_reader = new Fastq_reader($right_fq);
+        
+        
+        
+        while (my $left_fq_entry = $left_fq_reader->next()) {
+            my $right_fq_entry = $right_fq_reader->next();
             
+            my $core_read_name = $left_fq_entry->get_core_read_name();
+            # @DPP7|ENSG00000176978.9--ELP4|ENSG00000109911.13_18_606_3:0:0_2:0:0_e/1
+            
+            my @vals = split(/_/, $core_read_name);
+            my $frag_start = $vals[-6];
+            my $frag_end = $vals[-5];
+            
+            # check if overlaps breakpoint.
+            if ($frag_start > $brkpt_pos || $frag_end < $brkpt_pos) {
+                next;
+            }
+            
+            my $lend_read_start = $frag_start;
+            my $lend_read_end = $frag_start + $read_len -1;
+            
+            my $rend_read_start = $frag_end - $read_len + 1;
+            my $rend_read_end = $frag_end;
+            
+            my $read_type = "other";
+            
+            ### brkpt position:     |
+            ##               AGCTAGCTactgactg
+            
+            
+            if ( ($lend_read_start + $SPLIT_ANCHOR_REQUIRED -1 <= $brkpt_pos && $brkpt_pos <= $lend_read_end - $SPLIT_ANCHOR_REQUIRED) 
+                 ||
+                 ($rend_read_start + $SPLIT_ANCHOR_REQUIRED -1 <= $brkpt_pos && $brkpt_pos <= $rend_read_end - $SPLIT_ANCHOR_REQUIRED) ) {
+                
+                $count_split += 1;
+                $read_type = "split";
+                
+            }
+            
+            
+            #  LEND span fuzz                         <=======================>--------------------------<=================> 
+            #    brkpt                                                       |
+            #  REND span fuzz    <=========>--------------------------------<====================>
+            #                                                                ^
+            #                                                             fuzzy overlap allowed
+            
+            
+            elsif ($lend_read_end <= $brkpt_pos + $FUZZ && $brkpt_pos + 1 - $FUZZ < $rend_read_start) {
+                $count_span += 1;
+                $read_type = "span";
+            }
+            
+            my $left_fq_record = $left_fq_entry->get_fastq_record();
+            $left_fq_record =~ s/\n\+\n/\n\+$read_type\n/;
+            $left_fq_record =~ s/_flip/_${read_type}-flip/;
+            
+            my $right_fq_record = $right_fq_entry->get_fastq_record();
+            $right_fq_record =~ s/\n\+\n/\n\+$read_type\n/;
+            $right_fq_record =~ s/_flip/_${read_type}-flip/;
+            
+            print $left_fq_ofh $left_fq_record;
+            print $right_fq_ofh $right_fq_record;
         }
-
-
-        #  LEND span fuzz                         <=======================>--------------------------<=================> 
-        #    brkpt                                                       |
-        #  REND span fuzz    <=========>--------------------------------<====================>
-        #                                                                ^
-        #                                                             fuzzy overlap allowed
         
-
-        elsif ($lend_read_end <= $brkpt_pos + $FUZZ && $brkpt_pos + 1 - $FUZZ < $rend_read_start) {
-            $count_span += 1;
-            $read_type = "span";
-        }
-        
-        my $left_fq_record = $left_fq_entry->get_fastq_record();
-        $left_fq_record =~ s/\n\+\n/\n\+$read_type\n/;
-        $left_fq_record =~ s/_flip/_${read_type}-flip/;
-
-        my $right_fq_record = $right_fq_entry->get_fastq_record();
-        $right_fq_record =~ s/\n\+\n/\n\+$read_type\n/;
-        $right_fq_record =~ s/_flip/_${read_type}-flip/;
-
-        print $left_fq_ofh $left_fq_record;
-        print $right_fq_ofh $right_fq_record;
     }
-
+    
     return($count_split, $count_span);
 }
 
@@ -201,7 +207,7 @@ sub sim_unfused_reads {
 sub sim_rnaseq_reads {
     my ($seq_obj, $read_len) = @_;
     
-    my $depth_of_cov = int(rand(100)) + 1;
+    my $depth_of_cov = int(rand(91)) + 10; # min 10x cov
 
     my $header = $seq_obj->get_header();
     my $accession = $seq_obj->get_accession();
