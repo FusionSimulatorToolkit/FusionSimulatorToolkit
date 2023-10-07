@@ -1,4 +1,4 @@
 # FusionSimulatorToolkit
 
-Click the wiki link to the right for documentation.
+Click the [wiki link](https://github.com/FusionSimulatorToolkit/FusionSimulatorToolkit/wiki) documentation.
 
