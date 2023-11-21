@@ -28,7 +28,7 @@ simulateReads() {
   local FASTA=$1
   local TISSUE=$2
   local COVERAGE=$3
-  local PASS=$4
+  local PASSES=$4
   local OUT_DIR=$5
   local PBSIM3_DIR=$6
   local PREFIX=${OUT_DIR}/${TISSUE}_cov${COVERAGE}_pass${PASSES}
