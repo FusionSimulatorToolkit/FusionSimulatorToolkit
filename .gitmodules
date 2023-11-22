@@ -1,0 +1,3 @@
+[submodule "util/sim_long_reads/pbsim3"]
+	path = util/sim_long_reads/pbsim3
+	url = https://github.com/MethodsDev/pbsim3.git
