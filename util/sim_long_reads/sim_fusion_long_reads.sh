@@ -23,7 +23,7 @@ simulateCoverage() {
     fi
 }
 
-simulateReads() {
+simulatePacBioReads() {
   # simulates PacBio reads using PBSIM3* (*modified to report a name map)
   local FASTA=$1
   local TISSUE=$2
@@ -34,16 +34,38 @@ simulateReads() {
   local PREFIX=${OUT_DIR}/${TISSUE}_cov${COVERAGE}_pass${PASSES}
   eval "$7='${PREFIX}.fastq.gz'"
   eval "$8='${PREFIX}.name_map'"
-  echo --- Read Simulation: Start ---
+  echo --- PacBio Read Simulation: Start ---
   echo Input FATSA: ${FASTA} 
   echo Number of passes: ${PASSES}
   echo Output FASTQ: ${PREFIX}.fastq.gz  
   ${PBSIM3_DIR}/src/pbsim --strategy templ --method errhmm --errhmm ${PBSIM3_DIR}/data/ERRHMM-SEQUEL.model --template ${FASTA} --pass-num ${PASSES} --prefix ${PREFIX} --id-prefix ${TISSUE} &> ${PREFIX}.log
-  samtools view -b ${PREFIX}.sam > ${PREFIX}.bam 
-  rm ${PREFIX}.sam
-  pbindex ${PREFIX}.bam
-  ccs ${PREFIX}.bam ${PREFIX}.ccs.bam --min-passes ${PASSES} --min-rq 0
-  bedtools bamtofastq -i ${PREFIX}.ccs.bam -fq ${PREFIX}.fastq
+  
+  if [ ${PASSES} -ne 1 ]; then
+    samtools view -b ${PREFIX}.sam > ${PREFIX}.bam 
+    rm ${PREFIX}.sam
+    pbindex ${PREFIX}.bam
+    ccs ${PREFIX}.bam ${PREFIX}.ccs.bam --min-passes ${PASSES} --min-rq 0
+    bedtools bamtofastq -i ${PREFIX}.ccs.bam -fq ${PREFIX}.fastq
+  fi
+  gzip -f ${PREFIX}.fastq
+  echo --- Read Simulation: Done ---
+}
+
+
+simulateONTReads() {
+  # simulates ONT reads using the PBSIM3* R10 model, accuracy mean of 98% (*modified to report a name map)
+  local FASTA=$1
+  local TISSUE=$2
+  local COVERAGE=$3
+  local OUT_DIR=$4
+  local PBSIM3_DIR=$5
+  local PREFIX=${OUT_DIR}/${TISSUE}_cov${COVERAGE}
+  eval "$6='${PREFIX}.fastq.gz'"
+  eval "$7='${PREFIX}.name_map'"
+  echo --- ONT Read Simulation: Start ---
+  echo Input FATSA: ${FASTA} 
+  echo Output FASTQ: ${PREFIX}.fastq.gz  
+  ${PBSIM3_DIR}/src/pbsim --strategy templ --method errhmm --errhmm ${PBSIM3_DIR}/data/ERRHMM-ONT-HQ.model --template ${FASTA} --prefix ${PREFIX} --id-prefix ${TISSUE} --accuracy-mean 0.98 --pass 1 &> ${PREFIX}.log
   gzip -f ${PREFIX}.fastq
   echo --- Read Simulation: Done ---
 }
@@ -55,10 +77,10 @@ simulateReads() {
 
 
 usage () {
-    echo USAGE: $0 input_fasta_dir output_dir pbsim_install_dir
+    echo USAGE: $0 input_fasta_dir output_dir pbsim_install_dir platform
     exit 1
 }
-if [ "$#" -ne 3 ]
+if [ "$#" -ne 4 ]
 then
     usage
 fi
@@ -70,15 +92,20 @@ INPUT_DATA=$1
 OUTPUT_DIR=$2
 # path to the PBSIM3 (updated) installation
 PBSIM3_DIR=$3
+# sequencing platform (PACBIO or ONT)
+PLATFORM=$4
 # number of replicas for each combination of tissue/coverage/passes
 NREPLICAS=3
 # tissue list (expected in the input directory)
 TISSUES=('adipose' 'brain' 'colon' 'heart' 'testis')
 # range of coverages to simulate
 COVERAGES=(5 50)
-# number of passes to simulate at each coverage
-PASSES=(1 2 3 4 5 10 20)
-
+# (PacBio only) number of passes to simulate at each coverage
+if [ "$PLATFORM" = "PACBIO" ]; then
+    PASSES=(1 2 3 4 5 10 20)
+else
+    PASSES=(1)
+fi
 
 #-------------------------#
 #-------PIPELINE----------#
@@ -113,8 +140,12 @@ for COVERAGE in "${COVERAGES[@]}"; do
 		FASTA=${OUTPUT_DIR}/FASTA/sim_${TISSUE}.fusion_transcripts.cov${COVERAGE}.fasta
 		FASTQ=''
 		NAME_MAP=''
-                simulateReads ${FASTA} ${TISSUE} ${COVERAGE} $PASS ${OUTPUT_DIR}/READS/${REPLICA} ${PBSIM3_DIR} FASTQ NAME_MAP 
-                # adds the reads to the tissue mix for this replica
+                if [ "$PLATFORM" = "PACBIO" ]; then
+		    simulatePacBioReads ${FASTA} ${TISSUE} ${COVERAGE} $PASS ${OUTPUT_DIR}/READS/${REPLICA} ${PBSIM3_DIR} FASTQ NAME_MAP 
+	        else
+                    simulateONTReads ${FASTA} ${TISSUE} ${COVERAGE} ${OUTPUT_DIR}/READS/${REPLICA} ${PBSIM3_DIR} FASTQ NAME_MAP
+		fi
+		# adds the reads to the tissue mix for this replica
 		zcat ${FASTQ} >> ${OUTPUT_DIR}/TISSUE_MIX/${REPLICA}/mix_cov${COVERAGE}_pass${PASS}.fastq
                 cat ${NAME_MAP} >> ${OUTPUT_DIR}/TISSUE_MIX/${REPLICA}/mix_cov${COVERAGE}_pass${PASS}_name_map.txt
             done
